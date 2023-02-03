@@ -8,10 +8,6 @@ import torch.nn as nn
 from ultralytics import YOLO
 from PIL import Image
 
-def rectContains(rect,pt):
-    logic = rect[0] < pt[0] < rect[0]+rect[2] and rect[1] < pt[1] < rect[1]+rect[3]
-    return logic
-
 def draw_text(img, text,
             pos=(0, 0),
             font=cv2.FONT_HERSHEY_SIMPLEX,
