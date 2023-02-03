@@ -43,6 +43,7 @@ class Pipeline():
                  use_sd_resolution: bool = False,
                  use_hd_resolution: bool = True,
                  use_fhd_resolution: bool = False):
+        # Models
         self.source = source
         self.vehicle_weight = vehicle_weight
         self.image = cv2.imread(source)
@@ -63,13 +64,13 @@ class Pipeline():
 
     def set_resolution(self, image):
         height, width, _ = image.shape
-        ratio = width / height
+        ratio = height / width
         if self.use_sd_resolution:
-            image = cv2.resize(image, (640, int(640 / ratio)))
+            image = cv2.resize(image, (640, int(640 * ratio)))
         elif self.use_hd_resolution:
-            image = cv2.resize(image, (1280, int(1280 / ratio)))
+            image = cv2.resize(image, (1280, int(1280 * ratio)))
         elif self.use_fhd_resolution:
-            image = cv2.resize(image, (1920, int(1920 / ratio)))
+            image = cv2.resize(image, (1920, int(1920 * ratio)))
         else:
             pass
         return image
@@ -100,13 +101,13 @@ class Pipeline():
                     box = box.cpu().numpy().astype(int)
                     cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), bgr_green, thickness=2)
 
-                    im = frame[box[1]:box[3], box[0]:box[2], :]
+                    im = frame[box[1]:box[3], box[0]:box[2], :] # crop a half of a vehicle
                     plate_results = self.plate_model(source=im, save=False, conf=0.1)
                     plate_boxes = plate_results[0].boxes.xyxy
 
                     for plate_box in plate_boxes:
                         if plate_box is None:
-                            continue
+                            break
                         plate_box = plate_box.cpu().numpy().astype(int)
                         src_point = (plate_box[0]+box[0], plate_box[1]+box[1])
                         dst_point = (plate_box[2]+box[0], plate_box[3]+box[1])
@@ -125,5 +126,5 @@ if __name__ == "__main__":
     pipeline = Pipeline(source="data/TuKy.mp4",
                         vehicle_weight="weights/vehicle_yolov8.pt",
                         plate_weight="weights/plate_yolov8.pt",
-                        use_sd_resolution=True)
+                        use_hd_resolution=True)
     pipeline.run()
