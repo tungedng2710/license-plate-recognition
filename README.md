@@ -7,3 +7,9 @@ For instant usage, there are two trained model for both detection tasks are put 
 
 ## Plate reader
 Plate recognition (OCR) is in the prgress of development, it will be released soon. To fill the gap of the pipeline, I temporarily use a dummy model to generate a random results. Take it easy!
+
+## Usage
+Run the script below to perform license plate recognition and display the output to monitor (press ```Q``` to exit the window)
+```bat 
+python pipeline.py
+```
