@@ -4,68 +4,12 @@ import random
 import string
 import numpy as np
 import cv2
-
 import torch
-from torch import nn
 
 from ultralytics import YOLO
-
-os.environ["YOLOv8_VERBOSE"] = "False"
-BGR_COLORS = {
-    "blue": (255, 0, 0),
-    "green": (0, 255, 0),
-    "red": (0, 0, 255),
-    "amber": (0, 191, 255)
-}
-def check_image_size(image, w_thres, h_thres):
-    """
-    Ignore small images
-    Args: image, w_thres, h_thres
-    """
-    if w_thres is None:
-        w_thres = 64
-    if h_thres is None:
-        h_thres = 64
-    width, height, _ = image.shape
-    if (width >= w_thres) and (height >= h_thres):
-        return True
-    else:
-        return False
-
-def draw_text(img, text,
-            pos=(0, 0),
-            font=cv2.FONT_HERSHEY_SIMPLEX,
-            font_scale=1,
-            font_thickness=2,
-            text_color=(0, 0, 255),
-            text_color_bg=(0, 255, 0)
-            ):
-    """
-    Minor modification of cv2.putText to add background color
-    """
-    x, y = pos
-    text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
-    text_w, text_h = text_size
-    cv2.rectangle(img, pos, (x + text_w, y + text_h), text_color_bg, -1)
-    pos = (x, y + text_h + font_scale - 1)
-    cv2.putText(img, text, pos, font, font_scale, text_color, font_thickness)
-
-class DummyModel(nn.Module):
-    """
-    I'm just a Dummy model for filling the gap
-    Replace me with an OCR model
-    """
-    def __init__(self):
-        super().__init__()
-        print("You are using dummy OCR model!")
-
-    def forward(self, input):
-        number = random.uniform(1, 9)
-        number = int(10000*number)
-        number = str(number)
-        letter = random.choice(string.ascii_uppercase)
-        dummy_output = "30"+letter+number
-        return dummy_output
+from models.dummy_ocr import DummyModel
+from utils import map_label, check_image_size, draw_text, \
+                  BGR_COLORS, VEHICLES
 
 class Pipeline():
     """
@@ -79,7 +23,14 @@ class Pipeline():
                  use_hd_resolution: bool = True,
                  use_fhd_resolution: bool = False,
                  save_plate_image: bool = False):
-        # Pipeline core
+        """
+        Args:
+        - source (str): path to video, 0 for web cam
+        - vehicle_weight (str): path to the yolov8 weight of vehicle detector
+        - plate_weight (str): path to the yolov8 weight of plate detector
+        - save_plate_image (bool): save cropped object to file
+        """
+        # Core properties
         self.source = source
         self.vehicle_weight = vehicle_weight
         self.image = cv2.imread(source)
@@ -113,7 +64,7 @@ class Pipeline():
         Set video resolution for displaying only.
         Note: this function doesn't config the input video of the model.
         Arg:
-            image (OpenCV image): video frame
+            image (OpenCV image): video frame read by cv2
         """
         height, width, _ = image.shape
         ratio = height / width
@@ -139,8 +90,9 @@ class Pipeline():
         Run the pipeline end2end
         """
         cap = cv2.VideoCapture(self.source)
-        cap.set(cv2.CAP_PROP_FPS, 5)
-        count = 0 # for counting detected plates
+        cap.set(cv2.CAP_PROP_FPS, 30)
+        count = 0 # for counting total detected plates from whole video
+        plate_batch = []
         while(cap.isOpened()):
             ret, frame = cap.read()
             if ret:
@@ -148,54 +100,68 @@ class Pipeline():
                 vehicle_boxes = vehicle_results[0].boxes.xyxy
                 detected_plates = []
                 for box in vehicle_boxes:
+                    have_plate = False
                     if box is None:
                         continue
                     box = box.cpu().numpy().astype(int)
                     cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), self.color["green"], thickness=2)
-                    cropped_vehicle = frame[box[1]:box[3], box[0]:box[2], :] # crop a vehicle
-                    plate_results = self.plate_model(source=cropped_vehicle, save=False, conf=0.1, verbose=0)
+
+                    # crop a half of vehicle
+                    focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], box[3]]
+                    cropped_vehicle = frame[focused_box[1]:focused_box[3], focused_box[0]:focused_box[2], :]
+                    plate_results = self.plate_model(source=cropped_vehicle, save=False, conf=0.15, verbose=0)
                     plate_boxes = plate_results[0].boxes.xyxy
 
                     # Displaying plate detection
                     for plate_box in plate_boxes:
                         plate_box = plate_box.cpu().numpy().astype(int)
-                        src_point = (plate_box[0]+box[0], plate_box[1]+box[1])
-                        dst_point = (plate_box[2]+box[0], plate_box[3]+box[1])
+                        src_point = (plate_box[0]+focused_box[0], plate_box[1]+focused_box[1])
+                        dst_point = (plate_box[2]+focused_box[0], plate_box[3]+focused_box[1])
                         cv2.rectangle(frame, src_point, dst_point, self.color["red"], thickness=2)
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
-                        detected_plates.append(cropped_plate)
-                        if self.save_plate_image and check_image_size(cropped_plate, 64, 64):
+                        if check_image_size(cropped_plate, 8, 8):
+                            have_plate = True
                             detected_plates.append(cropped_plate)
-                            filename = os.path.join(self.saved_path, str(count)+".jpg")
-                            cv2.imwrite(filename, cropped_plate)
-                            count += 1
+                            if self.save_plate_image and check_image_size(cropped_plate, 64, 64):
+                                filename = os.path.join(self.saved_path, str(count)+".jpg")
+                                cv2.imwrite(filename, cropped_plate)
+                                plate_batch.append(cropped_plate)
+                                count += 1
 
                     # OCR the detected plate and display to monitor
-                    if len(detected_plates) > 0:
+                    if have_plate:
                         cropped_vehicle = torch.from_numpy(cropped_vehicle)
+                        # OCR module
                         ocr_text = self.ocr(cropped_vehicle)
-                        pos = (box[0], box[1]-5)
+                        # Display to monitor
+                        pos = (box[0], box[1])
                         draw_text(img = frame,
                                 text = ocr_text,
                                 pos = pos,
-                                text_color=self.color["red"])
+                                text_color=self.color["black"],
+                                text_color_bg=self.color["green"])
 
-                # Display to monitor
+                # Display detection info to monitor
                 num_plate_info = "Detected plates: " + str(len(detected_plates))
                 draw_text(img = frame,
-                              text = num_plate_info,
-                              pos = (0, 10),
-                              font_scale=2,
-                              text_color=self.color["red"])
+                        text = num_plate_info,
+                        pos = (0, 0),
+                        font_scale=2,
+                        text_color=self.color["black"],
+                        text_color_bg=self.color["amber"])
                 frame = self.set_resolution(frame)
                 cv2.imshow('Frame', frame)
                 if cv2.waitKey(25) & 0xFF == ord('q'):
                     break
+            if len(plate_batch) == 32:
+                plate_batch = np.array(plate_batch)
+                plate_batch = torch.from_numpy(plate_batch)
+                plate_batch = []
 
 if __name__ == "__main__":
     pipeline = Pipeline(source="data/TuKy.mp4",
                         vehicle_weight="weights/vehicle_yolov8.pt",
-                        plate_weight="weights/plate_yolov8.pt",
-                        use_sd_resolution=True,
-                        save_plate_image=True)
+                        plate_weight="weights/plate_yolov8m.pt",
+                        use_hd_resolution=True,
+                        save_plate_image=False)
     pipeline.run()
