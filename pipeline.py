@@ -160,7 +160,7 @@ class Pipeline():
 
 if __name__ == "__main__":
     pipeline = Pipeline(source="data/TuKy.mp4",
-                        vehicle_weight="weights/vehicle_yolov8.pt",
+                        vehicle_weight="weights/vehicle_yolov8n.pt",
                         plate_weight="weights/plate_yolov8m.pt",
                         use_hd_resolution=True,
                         save_plate_image=False)
