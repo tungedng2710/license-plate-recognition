@@ -131,4 +131,4 @@ dmypy.json
 # data and weights
 data
 runs
-*m.pt
+*.pt
