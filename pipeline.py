@@ -9,9 +9,8 @@ import torch
 
 from ultralytics import YOLO
 
-from models.dummyocr import DummyModel
-# from models.vietocr import VietOCR
-from utils import map_label, check_image_size, draw_text, draw_box, \
+from utils.ocr import DummyOCR
+from utils.utils import map_label, check_image_size, draw_text, draw_box, \
     BGR_COLORS, VEHICLES
 
 class Pipeline():
@@ -36,7 +35,7 @@ class Pipeline():
         self.vehicle_weight = vehicle_weight
         self.vehicle_model = YOLO(vehicle_weight)
         self.plate_model = YOLO(plate_weight)
-        self.ocr_model = DummyModel()
+        self.ocr_model = DummyOCR()
 
         # Resolution config for displaying
         self.use_sd_resolution = use_hd_resolution
@@ -84,10 +83,15 @@ class Pipeline():
         text = self.ocr_model(image)
         return text
 
-    def run(self, save_batch_size: int = 32):
+    def run(self,
+            vconf: float = 0.6,
+            pconf: float = 0.15,
+            save_batch_size: int = 32):
         """
         Run the pipeline end2end
         Args:
+        - vconf (float in [0,1]): confidence for vehicle detection
+        - pconf (float in [0,1]): confidence for plate detection
         - save_batch_size (int): create a batch of detections with given size
         """
         cap = cv2.VideoCapture(self.source)
@@ -98,7 +102,7 @@ class Pipeline():
             ret, frame = cap.read()
             if ret:
                 # Detect vehicles
-                vehicle_results = self.vehicle_model(source=frame, save=False, conf=0.6, verbose=0)
+                vehicle_results = self.vehicle_model(source=frame, conf=vconf, verbose=False)
                 vehicle_boxes = vehicle_results[0].boxes.xyxy # Bounding box
                 vehicle_labels = vehicle_results[0].boxes.cls # Predicted classes
                 detected_plates = []
@@ -114,9 +118,9 @@ class Pipeline():
                               text_color_bg=self.color["green"])
 
                     # Adjust the box to focus to the potential region
-                    focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], int(box[3]*1.2)]
+                    focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], int(box[3] * 1.2)]
                     cropped_vehicle = frame[focused_box[1]:focused_box[3], focused_box[0]:focused_box[2], :]
-                    plate_results = self.plate_model(source=cropped_vehicle, save=False, conf=0.2, verbose=0)
+                    plate_results = self.plate_model(source=cropped_vehicle, conf=pconf, verbose=False)
                     plate_boxes = plate_results[0].boxes.xyxy
 
                     # Displaying plate detection
@@ -154,7 +158,7 @@ class Pipeline():
                           text_color=self.color["black"],
                           text_color_bg=self.color["amber"])
                 frame = self.set_resolution(frame)
-                cv2.imshow("TonAI Traffic Camera", frame)
+                cv2.imshow("TonVision", frame)
                 if cv2.waitKey(25) & 0xFF == ord('q'):
                     break
 
@@ -165,9 +169,8 @@ class Pipeline():
                 plate_batch = []
 
 if __name__ == "__main__":
-    pipeline = Pipeline(source="data/cam2.mp4",
+    pipeline = Pipeline(source="data/cam1.mp4",
                         vehicle_weight="weights/vehicle_yolov8n.pt",
                         plate_weight="weights/plate_yolov8n.pt",
-                        use_hd_resolution=True,
-                        save_plate_image=False)
-    pipeline.run()
+                        use_hd_resolution=True)
+    pipeline.run(vconf=0.6, pconf=0.15)
