@@ -1,0 +1,6 @@
+easyocr==1.6.2
+opencv-python==4.7.0.68
+torch==1.13.1+cu116
+torchvision==0.14.1+cu116
+ultralytics==8.0.32
+vietocr==0.3.11

@@ -1,6 +1,7 @@
 """
 Copyright (C) 2023 TonAI
 """
+import argparse
 import shutil
 import os
 import numpy as np
@@ -9,15 +10,39 @@ import torch
 
 from ultralytics import YOLO
 
-from utils.ocr import DummyOCR
+from utils.ocr import DummyOCR, EasyOCR, VietOCR
 from utils.utils import map_label, check_image_size, draw_text, draw_box, \
     BGR_COLORS, VEHICLES
+
+def delete_file(path):
+    """
+    Delete generated file during inference
+    """
+    if os.path.exists(path):
+        os.remove(path)
+
+def get_args():
+    """
+    Get parsing arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source", type=str, default="data/cam1.mp4", help="path to video, 0 for webcam")
+    parser.add_argument("--vehicle_weight", type=str,
+                        default="weights/vehicle_yolov8n.pt",
+                        help="path to the yolov8 weight of vehicle detector")
+    parser.add_argument("--plate_weight", type=str,
+                        default="weights/plate_yolov8n.pt",
+                        help="path to the yolov8 weight of plate detector")
+    parser.add_argument("--vconf", type=float, default=0.6, help="confidence for vehicle detection")
+    parser.add_argument("--pconf", type=float, default=0.15, help="confidence for plate detection")
+    parser.add_argument("--save", action="store_true", help="save cropped detected objects")
+    return parser.parse_args()
 
 class Pipeline():
     """
     License plate OCR pipeline
     Args:
-    - source (str): path to video, 0 for web cam
+    - source (str): path to video, 0 for webcam
     - vehicle_weight (str): path to the yolov8 weight of vehicle detector
     - plate_weight (str): path to the yolov8 weight of plate detector
     - save_plate_image (bool): save cropped object to file
@@ -35,7 +60,7 @@ class Pipeline():
         self.vehicle_weight = vehicle_weight
         self.vehicle_model = YOLO(vehicle_weight)
         self.plate_model = YOLO(plate_weight)
-        self.ocr_model = DummyOCR()
+        self.ocr_model = EasyOCR()
 
         # Resolution config for displaying
         self.use_sd_resolution = use_hd_resolution
@@ -85,14 +110,12 @@ class Pipeline():
 
     def run(self,
             vconf: float = 0.6,
-            pconf: float = 0.15,
-            save_batch_size: int = 32):
+            pconf: float = 0.15):
         """
         Run the pipeline end2end
         Args:
         - vconf (float in [0,1]): confidence for vehicle detection
         - pconf (float in [0,1]): confidence for plate detection
-        - save_batch_size (int): create a batch of detections with given size
         """
         cap = cv2.VideoCapture(self.source)
         cap.set(cv2.CAP_PROP_FPS, 30)
@@ -140,17 +163,17 @@ class Pipeline():
                                 plate_batch.append(cropped_plate)
                                 count += 1
 
-                    # OCR the detected plate and display to monitor
-                    if have_plate:
-                        cropped_vehicle = torch.from_numpy(cropped_vehicle)
-                        # OCR module
-                        ocr_text = self.ocr(cropped_vehicle)
-                        # Display to monitor
-                        pos = (box[0], box[1])
-                        info = f"{label_name}: {ocr_text}"
-                        draw_text(img = frame, text = info, pos = pos,
-                                  text_color=self.color["blue"],
-                                  text_color_bg=self.color["green"])
+                        # OCR the detected plate and display to monitor
+                        if have_plate:
+                            cropped_vehicle = torch.from_numpy(cropped_vehicle)
+                            # OCR module
+                            ocr_text = self.ocr(cropped_plate)
+                            # Display to monitor
+                            pos = (box[0], box[1])
+                            info = f"{label_name} {ocr_text}"
+                            draw_text(img = frame, text = info, pos = pos,
+                                    text_color=self.color["blue"],
+                                    text_color_bg=self.color["green"])
 
                 # Display detection info to monitor
                 num_plate_info = "Detected plates: " + str(len(detected_plates))
@@ -160,17 +183,20 @@ class Pipeline():
                 frame = self.set_resolution(frame)
                 cv2.imshow("TonVision", frame)
                 if cv2.waitKey(25) & 0xFF == ord('q'):
+                    delete_file("temp.jpg")
                     break
 
             # Create a batch of detections
-            if len(plate_batch) == save_batch_size:
+            if len(plate_batch) == 32:
                 plate_batch = np.array(plate_batch)
                 plate_batch = torch.from_numpy(plate_batch)
                 plate_batch = []
 
 if __name__ == "__main__":
-    pipeline = Pipeline(source="data/cam1.mp4",
-                        vehicle_weight="weights/vehicle_yolov8n.pt",
-                        plate_weight="weights/plate_yolov8n.pt",
-                        use_hd_resolution=True)
-    pipeline.run(vconf=0.6, pconf=0.15)
+    args = get_args()
+    pipeline = Pipeline(source=args.source,
+                        vehicle_weight=args.vehicle_weight,
+                        plate_weight=args.plate_weight,
+                        use_hd_resolution=True,
+                        save_plate_image=args.save)
+    pipeline.run(vconf=args.vconf, pconf=args.pconf)
