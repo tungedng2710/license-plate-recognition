@@ -72,3 +72,31 @@ def draw_box(img, pt1, pt2, color, thickness, r, d):
     cv2.line(img, (x2 - r, y2), (x2 - r - d, y2), color, thickness)
     cv2.line(img, (x2, y2 - r), (x2, y2 - r - d), color, thickness)
     cv2.ellipse(img, (x2 - r, y2 - r), (r, r), 0, 0, 90, color, thickness)
+
+def compute_color(label):
+    """
+    Add borders of different colors
+    """
+    palette = (2 ** 11 - 1, 2 ** 15 - 1, 2 ** 20 - 1)
+    color = [int((p * (label ** 2 - label + 1)) % 255) for p in palette]
+    return tuple(color)
+
+def set_hd_resolution(image):
+    """
+    Set video resolution (for displaying only)
+    Arg:
+        image (OpenCV image): video frame read by cv2
+    """
+    height, width, _ = image.shape
+    ratio = height / width
+    image = cv2.resize(image, (1280, int(1280 * ratio)))
+    return image
+
+def resize_(image, scale):
+    """
+    Compress cv2 resize function
+    """
+    width = int(image.shape[1] * scale)
+    height = int(image.shape[0] * scale)
+    dsize = (width, height)
+    return cv2.resize(image, dsize)

@@ -23,3 +23,4 @@ Run the script below to perform license plate recognition and display the output
 ```bat 
 python pipeline.py --source path/to/video
 ```
+If you want to save the cropped plate image detected, add the argument ```--save``` to the script
