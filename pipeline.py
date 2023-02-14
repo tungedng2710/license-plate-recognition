@@ -110,10 +110,16 @@ class Pipeline():
                 vehicle_labels = vehicle_results[0].boxes.cls # Predicted classes
                 detected_plates = []
 
-                # # ---------------------- Tracking ----------------------
-                # xywhs = vehicle_results[0].boxes.xywh
-                # outputs = self.deepsort.update(xywhs, confss, im0)
-                # # ------------------------------------------------------
+                # ---------------------- Tracking ----------------------
+                xywhs = vehicle_results[0].boxes.xywh.cpu()
+                confss = vehicle_results[0].boxes.conf.cpu()
+                outputs = self.deepsort.update(xywhs, confss, frame)
+                # Draw tracked boxes
+                if len(outputs) > 0:
+                    bbox_xyxy = outputs[:, :4]
+                    identities = outputs[:, -1]
+                    draw_tracked_boxes(displayed_frame, bbox_xyxy, identities)
+                # ------------------------------------------------------
                 for index, box in enumerate(vehicle_boxes):
                     label_name = map_label(int(vehicle_labels[index]), VEHICLES)
                     label_color = compute_color(int(vehicle_labels[index]))
@@ -121,11 +127,11 @@ class Pipeline():
                     if box is None:
                         continue
                     box = box.cpu().numpy().astype(int)
-                    if fancy_box:
-                        draw_box(displayed_frame, (box[0], box[1]), (box[2], box[3]), label_color, 3, 0, 25)
-                    else:
-                        cv2.rectangle(displayed_frame, (box[0], box[1]), (box[2], box[3]), label_color, 3)
-                    draw_text(img = displayed_frame, text = label_name, pos = (box[0], box[1]),
+                    # if fancy_box:
+                    #     draw_box(displayed_frame, (box[0], box[1]), (box[2], box[3]), label_color, 3, 0, 25)
+                    # else:
+                    #     cv2.rectangle(displayed_frame, (box[0], box[1]), (box[2], box[3]), label_color, 3)
+                    draw_text(img = displayed_frame, text = label_name, pos = (int((box[0]+box[2])/2), box[1]),
                               text_color=self.color["blue"],
                               text_color_bg=self.color["green"])
 
@@ -143,7 +149,7 @@ class Pipeline():
                         cv2.rectangle(displayed_frame, src_point, dst_point, self.color["red"], thickness=2)
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
 
-                        # Zoom and display the plate
+                        # Zoom in and display the plate
                         displayed_plate = resize_(cropped_plate, 3)
                         plate_pos = (int(displayed_plate.shape[0]) + box[1],
                                      int(displayed_plate.shape[1]) + box[0])
@@ -153,7 +159,7 @@ class Pipeline():
                                             box[0]:plate_pos[1], :] = displayed_plate
                         except:
                             pass
-                    
+
                         if check_image_size(cropped_plate, 8, 8): # Ignore plates smaller than 8x8
                             have_plate = True
                             detected_plates.append(cropped_plate)
@@ -171,7 +177,7 @@ class Pipeline():
                             ocr_text = self.ocr(cropped_plate)
                             # ----------------------------------------
                             # Display to monitor
-                            pos = (box[0], box[1])
+                            pos = (int((box[0]+box[2])/2), box[1])
                             info = f"{label_name} {ocr_text}"
                             draw_text(img = displayed_frame, text = info, pos = pos,
                                       text_color=self.color["blue"],
@@ -179,7 +185,7 @@ class Pipeline():
 
                 # Display detection info to monitor
                 num_plate_info = "Detected plates: " + str(len(detected_plates))
-                draw_text(img = displayed_frame, text = num_plate_info, pos = (0, 0), font_scale=2,
+                draw_text(img = displayed_frame, text = num_plate_info, pos = (0, 0), font_scale=1,
                           text_color=self.color["black"],
                           text_color_bg=self.color["amber"])
                 if hd_resolution:
