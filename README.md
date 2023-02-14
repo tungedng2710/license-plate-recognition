@@ -1,8 +1,16 @@
 # YOLO-DeepSort: License plate recognition
 tungedng2710 | TonAI 2023
+## ToDo
+- [ ] PPOCR
+- [ ] Inference speed optimization
+- [x] DeepSort Tracking 
+- [x] EasyOCR
+- [x] Plate detection
+- [x] Vehicle detection
+
 ## Prerequisite
 * Ubuntu 20.04 or later
-* Python 3.9
+* 3.10 >= Python version >= 3.7
 
 ## Vehicle and plate detector
 The detector based on the YOLOv8 model, please checkout the official repository [Ultralytics](https://github.com/ultralytics/ultralytics) to install enviroment for inference as well as training.
