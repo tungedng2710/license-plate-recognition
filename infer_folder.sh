@@ -1,4 +1,5 @@
-folder=data
-video_name=$(ls $folder/*.mp4)
-echo $video_name is detected
-python pipeline.py $videos
+folder="data"
+for file in "$folder"/*.mp4; do
+    echo run inference on video: $file
+    python pipeline.py --source $file --save
+done
