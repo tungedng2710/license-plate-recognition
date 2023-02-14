@@ -5,6 +5,7 @@ from torch import nn
 from PIL import Image
 
 import easyocr
+from utils import delete_file
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 
@@ -18,6 +19,10 @@ class DummyOCR(nn.Module):
         print("You are using dummy OCR model!")
 
     def forward(self, image):
+        """
+        Overwrite the forward method of nn.Module
+        Generate a random string
+        """
         dummy_output = image
         number = random.uniform(1, 9)
         number = int(10000*number)
@@ -39,6 +44,9 @@ class VietOCR(nn.Module):
         self.detector = Predictor(config)
 
     def forward(self, img):
+        """
+        Overwrite the forward method of nn.Module
+        """
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_pil = Image.fromarray(img)
         return self.detector.predict(img_pil)
@@ -53,8 +61,12 @@ class EasyOCR(nn.Module):
         self.reader = easyocr.Reader(["vi"])
 
     def forward(self, image):
+        """
+        Overwrite the forward method of nn.Module
+        """
         cv2.imwrite("temp.jpg", image)
         result = self.reader.readtext("temp.jpg")
+        delete_file("temp.jpg")
         if len(result) > 0:
             return result[0][1]
         else:

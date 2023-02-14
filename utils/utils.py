@@ -100,3 +100,10 @@ def resize_(image, scale):
     height = int(image.shape[0] * scale)
     dsize = (width, height)
     return cv2.resize(image, dsize)
+
+def delete_file(path):
+    """
+    Delete generated file during inference
+    """
+    if os.path.exists(path):
+        os.remove(path)

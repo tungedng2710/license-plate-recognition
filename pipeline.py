@@ -15,13 +15,6 @@ from utils.ocr import DummyOCR, EasyOCR, VietOCR
 from utils.utils import map_label, check_image_size, draw_text, resize_, \
     draw_box, compute_color, set_hd_resolution, BGR_COLORS, VEHICLES
 
-def delete_file(path):
-    """
-    Delete generated file during inference
-    """
-    if os.path.exists(path):
-        os.remove(path)
-
 def get_args():
     """
     Get parsing arguments
@@ -113,7 +106,10 @@ class Pipeline():
         plate_batch = []
         while cap.isOpened():
             ret, frame = cap.read()
-            displayed_frame = frame.copy()
+            if frame is not None:
+                displayed_frame = frame.copy()
+            else:
+                break
             if ret:
                 # Detect vehicles
                 vehicle_results = self.vehicle_model(source=frame, conf=vconf, verbose=False)
@@ -191,7 +187,6 @@ class Pipeline():
                     displayed_frame = set_hd_resolution(displayed_frame)
                 cv2.imshow("TonVision", displayed_frame)
                 if cv2.waitKey(25) & 0xFF == ord('q'):
-                    delete_file("temp.jpg")
                     break
 
             # # Create a batch of detections
