@@ -1,4 +1,9 @@
-# Vietnamese license plate recognition
+# YOLO-DeepSort: License plate recognition
+tungedng2710 | TonAI 2023
+## Prerequisite
+* Ubuntu 20.04 or later
+* Python 3.9
+
 ## Vehicle and plate detector
 The detector based on the YOLOv8 model, please checkout the official repository [Ultralytics](https://github.com/ultralytics/ultralytics) to install enviroment for inference as well as training.
 

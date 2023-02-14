@@ -5,7 +5,7 @@ from torch import nn
 from PIL import Image
 
 import easyocr
-from utils import delete_file
+from .utils import delete_file
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 

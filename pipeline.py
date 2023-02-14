@@ -4,13 +4,12 @@ Copyright (C) 2023 TonAI
 import argparse
 import shutil
 import os
-import numpy as np
 import cv2
 import torch
 
 from ultralytics import YOLO
-# from tracking.utils.parser import get_config
-# from tracking.deep_sort import DeepSort
+from tracking.utils.parser import get_config
+from tracking.deep_sort import DeepSort
 from utils.ocr import DummyOCR, EasyOCR, VietOCR
 from utils.utils import map_label, check_image_size, draw_text, resize_, \
     draw_box, compute_color, set_hd_resolution, BGR_COLORS, VEHICLES
@@ -55,15 +54,15 @@ class Pipeline():
         self.plate_model = YOLO(plate_weight)
         self.ocr_model = EasyOCR()
 
-        # # DeepSort
-        # self.config_deepsort = config_deepsort
-        # cfg = get_config()
-        # cfg.merge_from_file(self.config_deepsort)
-        # self.deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
-        #                 max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
-        #                 nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP, max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
-        #                 max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
-        #                 use_cuda=True)
+        # DeepSort
+        self.config_deepsort = config_deepsort
+        cfg = get_config()
+        cfg.merge_from_file(self.config_deepsort)
+        self.deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
+                        max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
+                        nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP, max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
+                        max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
+                        use_cuda=True)
 
         # Miscellaneous for displaying
         self.color = BGR_COLORS
@@ -169,8 +168,9 @@ class Pipeline():
                         # OCR the detected plate and display to monitor
                         if have_plate:
                             cropped_vehicle = torch.from_numpy(cropped_vehicle)
-                            # OCR module
+                            # -------------- OCR module --------------
                             ocr_text = self.ocr(cropped_plate)
+                            # ----------------------------------------
                             # Display to monitor
                             pos = (box[0], box[1])
                             info = f"{label_name} {ocr_text}"
