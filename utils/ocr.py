@@ -6,8 +6,8 @@ from PIL import Image
 
 import easyocr
 from .utils import delete_file
-from vietocr.tool.predictor import Predictor
-from vietocr.tool.config import Cfg
+# from vietocr.tool.predictor import Predictor
+# from vietocr.tool.config import Cfg
 
 class DummyOCR(nn.Module):
     """
@@ -32,24 +32,24 @@ class DummyOCR(nn.Module):
         return dummy_output
 
 
-class VietOCR(nn.Module):
-    """
-    OCR Module using VietOCR library (https://github.com/pbcquoc/vietocr)
-    """
-    def __init__(self):
-        super().__init__()
-        config = Cfg.load_config_from_name("vgg_transformer")
-        config["cnn"]["pretrained"]=False
-        config["device"] = "cuda:0"
-        self.detector = Predictor(config)
+# class VietOCR(nn.Module):
+#     """
+#     OCR Module using VietOCR library (https://github.com/pbcquoc/vietocr)
+#     """
+#     def __init__(self):
+#         super().__init__()
+#         config = Cfg.load_config_from_name("vgg_transformer")
+#         config["cnn"]["pretrained"]=False
+#         config["device"] = "cuda:0"
+#         self.detector = Predictor(config)
 
-    def forward(self, img):
-        """
-        Overwrite the forward method of nn.Module
-        """
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img_pil = Image.fromarray(img)
-        return self.detector.predict(img_pil)
+#     def forward(self, img):
+#         """
+#         Overwrite the forward method of nn.Module
+#         """
+#         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#         img_pil = Image.fromarray(img)
+#         return self.detector.predict(img_pil)
 
 
 class EasyOCR(nn.Module):

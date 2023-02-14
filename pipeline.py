@@ -10,9 +10,9 @@ import torch
 from ultralytics import YOLO
 from tracking.utils.parser import get_config
 from tracking.deep_sort import DeepSort
-from utils.ocr import DummyOCR, EasyOCR, VietOCR
-from utils.utils import map_label, check_image_size, draw_text, resize_, \
-    draw_box, compute_color, set_hd_resolution, BGR_COLORS, VEHICLES
+from utils.ocr import DummyOCR, EasyOCR
+from utils.utils import map_label, check_image_size, draw_text, resize_, draw_box, \
+    draw_tracked_boxes, compute_color, set_hd_resolution, BGR_COLORS, VEHICLES
 
 def get_args():
     """
@@ -81,12 +81,6 @@ class Pipeline():
         text = self.ocr_model(image)
         return text
 
-    def track(self):
-        """
-        Run object tracking
-        """
-        pass
-
     def run(self,
             hd_resolution: bool = True,
             fancy_box: bool = False,
@@ -115,6 +109,11 @@ class Pipeline():
                 vehicle_boxes = vehicle_results[0].boxes.xyxy # Bounding box
                 vehicle_labels = vehicle_results[0].boxes.cls # Predicted classes
                 detected_plates = []
+
+                # # ---------------------- Tracking ----------------------
+                # xywhs = vehicle_results[0].boxes.xywh
+                # outputs = self.deepsort.update(xywhs, confss, im0)
+                # # ------------------------------------------------------
                 for index, box in enumerate(vehicle_boxes):
                     label_name = map_label(int(vehicle_labels[index]), VEHICLES)
                     label_color = compute_color(int(vehicle_labels[index]))
