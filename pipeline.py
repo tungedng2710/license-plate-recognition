@@ -91,19 +91,19 @@ class Pipeline():
         - pconf (float in [0,1]): confidence for plate detection
         """
         cap = cv2.VideoCapture(self.video)
-
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         # Config saved path
         if save_result:
             vid_name = os.path.basename(self.video)
             saved_plate_path = f"data/{vid_name}"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             vid_writer = cv2.VideoWriter(f"data/infered_{vid_name}", fourcc, fps, (w, h))
 
         # -------------------------- MAIN --------------------------
         count = 0  # for counting total detected plates from whole video
+        thresh_h = int(h / 2.5)
         while cap.isOpened():
             ret, frame = cap.read()
             if frame is not None:
@@ -111,6 +111,8 @@ class Pipeline():
             else:
                 break
             if ret:
+                # Draw a line to separate detection zone
+                cv2.line(displayed_frame, (0, thresh_h), (w, thresh_h), self.color["blue"], 2)
                 # Detect vehicles
                 vehicle_results = self.vehicle_model(source=frame, conf=vconf, verbose=False)
                 vehicle_boxes = vehicle_results[0].boxes.xyxy  # Bounding box
@@ -151,10 +153,10 @@ class Pipeline():
                         plate_box = plate_box.cpu().numpy().astype(int)
                         src_point = (plate_box[0] + focused_box[0], plate_box[1] + focused_box[1])
                         dst_point = (plate_box[2] + focused_box[0], plate_box[3] + focused_box[1])
+                        if src_point[1] < thresh_h:
+                            continue
                         cv2.rectangle(displayed_frame, src_point, dst_point, self.color["red"], thickness=2)
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
-
-
                         if check_image_size(cropped_plate, 8, 8):  # Ignore plates smaller than 8x8
                             have_plate = True
                             # Zoom in and display the plate
@@ -218,6 +220,6 @@ if __name__ == "__main__":
             pipeline.run(vconf=args.vconf,
                          pconf=args.pconf,
                          hd_resolution=True,
-                         save_result=True)
+                         save_result=False)
         except:
             continue
