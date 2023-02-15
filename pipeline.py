@@ -94,12 +94,13 @@ class Pipeline():
 
         # Config saved path
         if save_result:
-            vid_name = os.path.basename(self.video).split('.')[0]
-            saved_plate_path = f"data/{vid_name}"
             vid_name = os.path.basename(self.video)
-            if os.path.exists(saved_plate_path):
-                shutil.rmtree(saved_plate_path)
-            os.makedirs(saved_plate_path)
+            saved_plate_path = f"data/{vid_name}"
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            vid_writer = cv2.VideoWriter(f"data/infered_{vid_name}", fourcc, fps, (w, h))
 
         # -------------------------- MAIN --------------------------
         count = 0  # for counting total detected plates from whole video
@@ -153,25 +154,22 @@ class Pipeline():
                         cv2.rectangle(displayed_frame, src_point, dst_point, self.color["red"], thickness=2)
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
 
-                        # Zoom in and display the plate
-                        try:
 
+                        if check_image_size(cropped_plate, 8, 8):  # Ignore plates smaller than 8x8
+                            have_plate = True
+                            # Zoom in and display the plate
                             displayed_plate = resize_(cropped_plate, 3)
                             plate_pos = (int(displayed_plate.shape[0]) + box[1],
                                          int(displayed_plate.shape[1]) + box[0])
                             adjust_height = int((box[3] - box[1]) / 2)
                             displayed_frame[box[1] + adjust_height:plate_pos[0] + adjust_height, \
                             box[0]:plate_pos[1], :] = displayed_plate
-                        except:
-                            pass
 
-                        if check_image_size(cropped_plate, 8, 8):  # Ignore plates smaller than 8x8
-                            have_plate = True
                             detected_plates.append(cropped_plate)
                             # Save the cropped plate, ignore if its size smaller than 32x32
                             if save_result and check_image_size(cropped_plate, 32, 32):
                                 filename = os.path.join(saved_plate_path, str(count) + ".jpg")
-                                cv2.imwrite(filename, cropped_plate)
+                                # cv2.imwrite(filename, cropped_plate)
                                 count += 1
 
                         # OCR the detected plate and display to monitor
@@ -193,13 +191,10 @@ class Pipeline():
                           text_color=self.color["black"],
                           text_color_bg=self.color["amber"])
                 if save_result:
-                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                    fps, w, h = 30, displayed_frame.shape[1], displayed_frame.shape[0]
-                    vid_writer = cv2.VideoWriter(f"data/infered_{vid_name}", fourcc, fps, (w, h))
                     vid_writer.write(displayed_frame)
                 if hd_resolution:
                     displayed_frame = set_hd_resolution(displayed_frame)
-                cv2.imshow("TonVision", displayed_frame)
+                cv2.imshow("TonTraffic", displayed_frame)
                 if cv2.waitKey(25) & 0xFF == ord('q'):
                     break
 
@@ -210,7 +205,8 @@ class Pipeline():
 
 if __name__ == "__main__":
     args = get_args()
-    root_dir = "data"
+    root_dir = "/hdd/video_collection"
+    # root_dir = "data"
     for video_name in os.listdir(root_dir):
         if "mp4" in video_name:
             print("Run inference on", os.path.join(root_dir, video_name))
@@ -218,7 +214,10 @@ if __name__ == "__main__":
                                 vehicle_weight=args.vehicle_weight,
                                 plate_weight=args.plate_weight,
                                 config_deepsort=args.config_deepsort)
+        try:
             pipeline.run(vconf=args.vconf,
                          pconf=args.pconf,
                          hd_resolution=True,
-                         save_result=False)
+                         save_result=True)
+        except:
+            continue
