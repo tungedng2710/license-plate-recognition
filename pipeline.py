@@ -214,7 +214,7 @@ if __name__ == "__main__":
     for video_name in os.listdir(root_dir):
         if "mp4" in video_name:
             print("Run inference on", os.path.join(root_dir, video_name))
-            pipeline = Pipeline(video=video_name,
+            pipeline = Pipeline(video=os.path.join(root_dir, video_name),
                                 vehicle_weight=args.vehicle_weight,
                                 plate_weight=args.plate_weight,
                                 config_deepsort=args.config_deepsort)
