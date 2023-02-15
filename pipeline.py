@@ -20,7 +20,7 @@ def get_args():
     Get parsing arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", type=str, default="cam1.mp4", help="path to video, 0 for webcam")
+    parser.add_argument("--video", type=str, default="data/cam1.mp4", help="path to video, 0 for webcam")
     parser.add_argument("--vehicle_weight", type=str,
                         default="weights/vehicle_yolov8n.pt",
                         help="path to the yolov8 weight of vehicle detector")
@@ -38,19 +38,19 @@ class Pipeline():
     """
     License plate OCR pipeline
     Args:
-    - source (str): path to video, 0 for webcam
+    - video (str): path to video, 0 for webcam
     - vehicle_weight (str): path to the yolov8 weight of vehicle detector
     - plate_weight (str): path to the yolov8 weight of plate detector
     - save_result (bool): save cropped plate and output video to file
     """
 
     def __init__(self,
-                 source: str = "data",
+                 video: str = "data",
                  vehicle_weight: str = None,
                  plate_weight: str = None,
                  config_deepsort: str = None):
         # Core properties
-        self.source = source
+        self.video = video
         self.vehicle_weight = vehicle_weight
         self.vehicle_model = YOLO(vehicle_weight)
         self.plate_model = YOLO(plate_weight)
@@ -90,13 +90,13 @@ class Pipeline():
         - vconf (float in [0,1]): confidence for vehicle detection
         - pconf (float in [0,1]): confidence for plate detection
         """
-        cap = cv2.VideoCapture(self.source)
+        cap = cv2.VideoCapture(self.video)
 
         # Config saved path
         if save_result:
-            vid_name = os.path.basename(self.source).split('.')[0]
+            vid_name = os.path.basename(self.video).split('.')[0]
             saved_plate_path = f"data/{vid_name}"
-            vid_name = os.path.basename(self.source)
+            vid_name = os.path.basename(self.video)
             if os.path.exists(saved_plate_path):
                 shutil.rmtree(saved_plate_path)
             os.makedirs(saved_plate_path)
@@ -208,15 +208,17 @@ class Pipeline():
             vid_writer.release()
         cv2.destroyAllWindows()
 
-
 if __name__ == "__main__":
     args = get_args()
-    print(args)
-    pipeline = Pipeline(source=args.source,
-                        vehicle_weight=args.vehicle_weight,
-                        plate_weight=args.plate_weight,
-                        config_deepsort=args.config_deepsort)
-    pipeline.run(vconf=args.vconf,
-                 pconf=args.pconf,
-                 hd_resolution=True,
-                 save_result=args.save)
+    root_dir = "data"
+    for video_name in os.listdir(root_dir):
+        if "mp4" in video_name:
+            print("Run inference on", os.path.join(root_dir, video_name))
+            pipeline = Pipeline(video=args.video,
+                                vehicle_weight=args.vehicle_weight,
+                                plate_weight=args.plate_weight,
+                                config_deepsort=args.config_deepsort)
+            pipeline.run(vconf=args.vconf,
+                         pconf=args.pconf,
+                         hd_resolution=True,
+                         save_result=False)
