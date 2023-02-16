@@ -1,8 +1,8 @@
 # YOLO-DeepSort: License plate recognition
 tungedng2710 | TonAI 2023
 ## ToDo
-- [ ] PPOCR
 - [ ] Inference speed optimization
+- [x] PPOCR
 - [x] DeepSort Tracking 
 - [x] EasyOCR
 - [x] Plate detection
@@ -18,9 +18,9 @@ The detector based on the YOLOv8 model, please checkout the official repository 
 For instant usage, there are two trained model for both detection tasks are put in the ```weights``` folder (You may have to check the default path in code).
 
 ## Plate reader
-Plate recognition (OCR) is in the prgress of development, it will be released soon. To fill the gap of the pipeline, I temporarily use a dummy model to generate a random results. Take it easy!
+**Update 15th Feb 2023**: [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) has been integrated.
 
-**Update**: [VietOCR](https://github.com/pbcquoc/vietocr) and [EasyOCR](https://github.com/JaidedAI/EasyOCR) has been added. However, it has problem in inference speed and accuracy. It is being placed as an Easter egg, please checkout the code.
+Plate recognition (OCR) is in the prgress of development, it will be released soon. To fill the gap of the pipeline, I temporarily use a dummy model to generate a random results. Take it easy!
 
 ## Usage
 Clone this repository

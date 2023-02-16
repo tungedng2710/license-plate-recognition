@@ -118,31 +118,28 @@ class TextRecognizer(object):
 
 class PPOCR(nn.Module):
     """
-    OCR Module using EasyOCR library (https://github.com/JaidedAI/EasyOCR)
+    OCR Module using PPOCR library (https://github.com/PaddlePaddle/PaddleOCR)
     """
 
     def __init__(self):
         super().__init__()
         args = utility.parse_args()
         args.rec_model_dir = "weights/rec_ppocr_0.66/"
-
         self.text_recognizer = TextRecognizer(args)
 
     def forward(self, img_list):
         """
         Overwrite the forward method of nn.Module
         """
-        # infermodel
         img_list = [img_list]
         try:
             rec_res, _ = self.text_recognizer(img_list)
-            return rec_res[0][0]
+            return rec_res[0][0], rec_res[0][1]
         except Exception as E:
             logger.info(traceback.format_exc())
             logger.info(E)
             exit()
-
-        return []
+        return [], []
 
 
 class DummyOCR(nn.Module):
