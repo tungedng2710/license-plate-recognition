@@ -220,6 +220,6 @@ if __name__ == "__main__":
             pipeline.run(vconf=args.vconf,
                          pconf=args.pconf,
                          hd_resolution=True,
-                         save_result=False)
+                         save_result=True)
         except:
             continue
