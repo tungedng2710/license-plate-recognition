@@ -13,7 +13,7 @@ from tracking.utils.parser import get_config
 from tracking.deep_sort import DeepSort
 from utils.ocr import PPOCR
 from utils.utils import map_label, check_image_size, draw_text, resize_, draw_box, \
-    draw_tracked_boxes, compute_color, set_hd_resolution, BGR_COLORS, VEHICLES
+    draw_tracked_boxes, compute_color, set_hd_resolution, BGR_COLORS, COCO_OBJECTS
 
 
 def get_args():
@@ -23,12 +23,12 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--video", type=str, default="data/cam1.mp4", help="path to video, 0 for webcam")
     parser.add_argument("--vehicle_weight", type=str,
-                        default="weights/vehicle_yolov8n.pt",
+                        default="weights/yolov8s_coco.pt",
                         help="path to the yolov8 weight of vehicle detector")
     parser.add_argument("--plate_weight", type=str,
                         default="weights/plate_yolov8n.pt",
                         help="path to the yolov8 weight of plate detector")
-    parser.add_argument("--vconf", type=float, default=0.3, help="confidence for vehicle detection")
+    parser.add_argument("--vconf", type=float, default=0.5, help="confidence for vehicle detection")
     parser.add_argument("--pconf", type=float, default=0.15, help="confidence for plate detection")
     parser.add_argument("--save", action="store_true", help="save cropped detected objects")
     parser.add_argument("--config_deepsort", type=str, default="tracking/configs/deep_sort.yaml")
@@ -101,12 +101,10 @@ class Pipeline():
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         # Config logs
         if save_result:
-            if not os.path.exists("data/logs"):
-                os.makedirs("data/logs")
-            log_path = f"data/logs/{vid_name}"
-            os.makedirs(log_path)
+            log_path = f"data/logs"
+            if not os.path.exists(log_path):
+                os.makedirs(log_path)
             # Setup video writer
-            saved_plate_path = f"data/{vid_name}"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             vid_writer = cv2.VideoWriter(f"{log_path}/infered_{vid_name}", fourcc, fps, (w, h))
 
@@ -144,7 +142,7 @@ class Pipeline():
                     vehicles.append(vehicle)
                 # ------------------------------------------------------
                 for index, box in enumerate(vehicle_boxes):
-                    label_name = map_label(int(vehicle_labels[index]), VEHICLES)
+                    label_name = map_label(int(vehicle_labels[index]), COCO_OBJECTS)
                     have_plate = False
                     if box is None:
                         continue
@@ -158,7 +156,8 @@ class Pipeline():
                 for vehicle in vehicles:
                     box = vehicle["bbox_xyxy"].astype(int)
                     # Adjust the box to focus to the potential region
-                    focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], int(box[3] * 1.2)]
+                    # focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], int(box[3] * 1.2)]
+                    focused_box = box
                     cropped_vehicle = frame[focused_box[1]:focused_box[3], focused_box[0]:focused_box[2], :]
                     plate_results = self.plate_model(source=cropped_vehicle, conf=pconf, verbose=False)
                     plate_boxes = plate_results[0].boxes.xyxy
@@ -198,10 +197,10 @@ class Pipeline():
                                 log_time = cur_time.strftime("%d%m%y_%H%M%S")
                                 detected_vehicle = frame[focused_box[1]:focused_box[3], \
                                                          focused_box[0]:focused_box[2], :]
-                                if not os.path.exists(f"{log_path}/{ocr_text}"):
-                                    os.makedirs(f"{log_path}/{ocr_text}")
-                                    cv2.imwrite(f"{log_path}/{ocr_text}/{ocr_text}.jpg", detected_vehicle)
-                                    cv2.imwrite(f"{log_path}/{ocr_text}/{frame}.jpg", displayed_frame)
+                                # if not os.path.exists(f"{log_path}/{ocr_text}"):
+                                #     os.makedirs(f"{log_path}/{ocr_text}")
+                                #     cv2.imwrite(f"{log_path}/{ocr_text}/{ocr_text}.jpg", detected_vehicle)
+                                #     cv2.imwrite(f"{log_path}/{ocr_text}/{frame}.jpg", displayed_frame)
                             # ----------------------------------------
                         # Display to monitor
                         pos = (int((box[0] + box[2]) / 2), box[1])
@@ -240,11 +239,14 @@ if __name__ == "__main__":
                                 vehicle_weight=opts.vehicle_weight,
                                 plate_weight=opts.plate_weight,
                                 config_deepsort=opts.config_deepsort)
-        pipeline.run(vconf=opts.vconf,
-                        pconf=opts.pconf,
-                        ocrconf_thres=0.9,
-                        hd_resolution=True,
-                        save_result=True)
+        try:
+            pipeline.run(vconf=opts.vconf,
+                            pconf=opts.pconf,
+                            ocrconf_thres=0.9,
+                            hd_resolution=True,
+                            save_result=True)
+        except:
+            continue
     # pipeline = Pipeline(video=opts.video,
     #                     vehicle_weight=opts.vehicle_weight,
     #                     plate_weight=opts.plate_weight,
