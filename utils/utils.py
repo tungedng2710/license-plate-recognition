@@ -10,22 +10,13 @@ BGR_COLORS = {
     "black": (0, 0, 0)
 }
 # VEHICLES = ["bicycle", "bus", "car", "motorbike", "person", "truck"]
-VEHICLES = ['bicycle', 'bus', 'car', 'motorbike', 'truck']
-COCO_OBJECTS = [ 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
-         'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-         'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-         'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
-         'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-         'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-         'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-         'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
-         'hair drier', 'toothbrush' ]
+VEHICLES = ['bicycle', 'bus', 'car', 'motorcycle', 'truck']
 
-def map_label(index, labels):
+def map_label(class_idx, vehicle_labels):
     """
-    Map argmax output to label name
+    Map argmax output to label name following COCO Object
     """
-    return labels[index]
+    return vehicle_labels[class_idx]
 
 def check_image_size(image, w_thres, h_thres):
     """
