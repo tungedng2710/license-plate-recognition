@@ -29,7 +29,7 @@ def get_args():
                         default="weights/plate_yolov8n.pt",
                         help="path to the yolov8 weight of plate detector")
     parser.add_argument("--vconf", type=float, default=0.6, help="confidence for vehicle detection")
-    parser.add_argument("--pconf", type=float, default=0.15, help="confidence for plate detection")
+    parser.add_argument("--pconf", type=float, default=0.25, help="confidence for plate detection")
     parser.add_argument("--save", action="store_true", help="save cropped detected objects")
     parser.add_argument("--config_deepsort", type=str, default="tracking/configs/deep_sort.yaml")
     return parser.parse_args()
@@ -114,7 +114,7 @@ class Pipeline():
 
         # -------------------------- MAIN --------------------------
         count = 0  # Count total detected plates from whole video
-        thresh_h = int(h / 3) # Limit detection zone
+        # thresh_h = int(h / 3) # Limit detection zone
         
         while cap.isOpened():
             ret, frame = cap.read()
@@ -123,8 +123,8 @@ class Pipeline():
             else:
                 break
             if ret:
-                # Draw a line to separate detection zone
-                cv2.line(displayed_frame, (0, thresh_h), (w, thresh_h), self.color["blue"], 2)
+                # # Draw a line to separate detection zone
+                # cv2.line(displayed_frame, (0, thresh_h), (w, thresh_h), self.color["blue"], 1)
                 # Detect vehicles
                 vehicle_results = self.vehicle_model(source=frame, conf=vconf, verbose=False)
                 vehicle_boxes = vehicle_results[0].boxes.xyxy  # Bounding box
@@ -141,7 +141,7 @@ class Pipeline():
                     vehicle = {
                         "id": outputs[idx, -1],
                         "bbox_xyxy": outputs[idx, :4],
-                        "plate_number": ''
+                        "plate_number": "unavailable"
                     }
                     vehicles.append(vehicle)
                     vehicle_bbox = vehicle["bbox_xyxy"]
@@ -157,13 +157,13 @@ class Pipeline():
                     box = box.cpu().numpy().astype(int)
                     # Draw object information
                     draw_text(img=displayed_frame, text=label_name,
-                            pos=(int((box[0] + box[2]) / 2), box[1]),
-                            text_color=self.color["blue"],
-                            text_color_bg=self.color["green"])
+                              pos=(int((box[0] + box[2]) / 2), box[1]),
+                              text_color=self.color["blue"],
+                              text_color_bg=self.color["green"])
                 ocr_conf = 0.0
                 for vehicle in vehicles:
                     box = vehicle["bbox_xyxy"].astype(int)
-                    # Adjust the box to focus to the potential region
+                    # # Adjust the box to focus to the potential region
                     # focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], int(box[3] * 1.2)]
                     focused_box = box
                     cropped_vehicle = frame[focused_box[1]:focused_box[3], focused_box[0]:focused_box[2], :]
@@ -175,8 +175,8 @@ class Pipeline():
                         plate_box = plate_box.cpu().numpy().astype(int)
                         src_point = (plate_box[0] + focused_box[0], plate_box[1] + focused_box[1])
                         dst_point = (plate_box[2] + focused_box[0], plate_box[3] + focused_box[1])
-                        if src_point[1] < thresh_h:
-                            continue
+                        # if src_point[1] < thresh_h:
+                        #     continue
                         cv2.rectangle(displayed_frame, src_point, dst_point, self.color["red"], thickness=2)
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
                         if check_image_size(cropped_plate, 16, 16):   # Ignore small plates
@@ -197,26 +197,19 @@ class Pipeline():
                         if have_plate:
                             # -------------- OCR module --------------
                             ocr_text, ocr_conf = self.ocr(cropped_plate)
-                            vehicle["plate_number"] = ocr_text
                             vehicle["ocr_conf"] = ocr_conf
                             if vehicle["ocr_conf"] >= ocrconf_thres:
-                                cur_time = datetime.datetime.now()
-                                log_time = cur_time.strftime("%d%m%y_%H%M%S")
-                                detected_vehicle = frame[focused_box[1]:focused_box[3], \
-                                                         focused_box[0]:focused_box[2], :]
-                        # Display to monitor
-                        pos = (int((box[0] + box[2]) / 2), box[1])
-                        plate_number = vehicle["plate_number"]
-                        info = f"{label_name} {plate_number}"
-                        draw_text(img=displayed_frame, text=info, pos=pos,
-                                    text_color=self.color["blue"],
-                                    text_color_bg=self.color["green"])
+                                vehicle["plate_number"] = ocr_text
+                                # Display to monitor
+                                pos = (int((box[0] + box[2]) / 2), box[1])
+                                plate_number = vehicle["plate_number"]
+                                info = f"{label_name} {plate_number}"
+                                draw_text(img=displayed_frame, text=info, pos=pos,
+                                          text_color=self.color["blue"],
+                                          text_color_bg=self.color["green"])
+                            else:
+                                vehicle["plate_number"] = "unavailable"
 
-                # # Display global detection info
-                # num_plate_info = "Detected plates: " + str(len(detected_plates))
-                # draw_text(img=displayed_frame, text=num_plate_info, pos=(0, 0), font_scale=1,
-                #           text_color=self.color["black"],
-                #           text_color_bg=self.color["amber"])
                 if save_result:
                     vid_writer.write(displayed_frame)
                 if hd_resolution:
@@ -233,7 +226,7 @@ class Pipeline():
 
 if __name__ == "__main__":
     opts = get_args()
-    root_dir = "/hdd/traffic_video_clean"
+    root_dir = "data/traffic_video_clean"
     for video_name in os.listdir(root_dir):
         if "mp4" in video_name:
             print("Run inference on", os.path.join(root_dir, video_name))

@@ -9,7 +9,6 @@ BGR_COLORS = {
     "white": (255, 255, 255),
     "black": (0, 0, 0)
 }
-# VEHICLES = ["bicycle", "bus", "car", "motorbike", "person", "truck"]
 VEHICLES = ['bicycle', 'bus', 'car', 'motorcycle', 'truck']
 
 def map_label(class_idx, vehicle_labels):

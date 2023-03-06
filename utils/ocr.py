@@ -124,7 +124,7 @@ class PPOCR(nn.Module):
     def __init__(self):
         super().__init__()
         args = utility.parse_args()
-        args.rec_model_dir = "weights/rec_ppocr_0.66/"
+        args.rec_model_dir = "weights/rec_ppocr_0.948/"
         self.text_recognizer = TextRecognizer(args)
 
     def forward(self, img_list):
