@@ -1,14 +1,5 @@
 import random
 import string
-import cv2
-from torch import nn
-from PIL import Image
-
-# import easyocr
-# from vietocr.tool.predictor import Predictor
-# from vietocr.tool.config import Cfg
-from .utils import delete_file
-
 import os
 from PIL import Image
 import cv2
@@ -16,14 +7,19 @@ import numpy as np
 import math
 import time
 import traceback
+import yaml
+from torch import nn
+from PIL import Image
+
 from paddleocr.ppocr.postprocess import build_post_process
 import paddleocr.tools.infer.utility as utility
 from paddleocr.ppocr.utils.logging import get_logger
+from .utils import MyDict
+from .utils import delete_file
 
 os.environ["FLAGS_allocator_strategy"] = 'auto_growth'
 
 logger = get_logger()
-
 
 class TextRecognizer(object):
     def __init__(self, args):
@@ -120,11 +116,14 @@ class PPOCR(nn.Module):
     """
     OCR Module using PPOCR library (https://github.com/PaddlePaddle/PaddleOCR)
     """
-
     def __init__(self):
         super().__init__()
-        args = utility.parse_args()
-        args.rec_model_dir = "weights/rec_ppocr_0.948/"
+        with open("utils/ppocr_configs.yaml") as f:
+            configs = yaml.safe_load(f)
+        configs["rec_model_dir"] = "weights/rec_ppocr_0.948/"
+        # args = utility.parse_args()a
+        args = MyDict(configs)
+        
         self.text_recognizer = TextRecognizer(args)
 
     def forward(self, img_list):
@@ -164,26 +163,6 @@ class DummyOCR(nn.Module):
         letter = random.choice(string.ascii_uppercase)
         dummy_output = f"30{letter}{number}"
         return dummy_output
-
-
-# class VietOCR(nn.Module):
-#     """
-#     OCR Module using VietOCR library (https://github.com/pbcquoc/vietocr)
-#     """
-#     def __init__(self):
-#         super().__init__()
-#         config = Cfg.load_config_from_name("vgg_transformer")
-#         config["cnn"]["pretrained"]=False
-#         config["device"] = "cuda:0"
-#         self.detector = Predictor(config)
-
-#     def forward(self, img):
-#         """
-#         Overwrite the forward method of nn.Module
-#         """
-#         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-#         img_pil = Image.fromarray(img)
-#         return self.detector.predict(img_pil)
 
 
 # class EasyOCR(nn.Module):

@@ -24,19 +24,21 @@ class DeepSort(object):
         self.tracker = Tracker(
             metric, max_iou_distance=max_iou_distance, max_age=max_age, n_init=n_init)
 
-    def update(self, bbox_xywh, confidences, ori_img):
+    def update(self, bbox_xywh, confidences, ori_img, labels):
         self.height, self.width = ori_img.shape[:2]
         # 生成检测
         features = self._get_features(bbox_xywh, ori_img)
         bbox_tlwh = self._xywh_to_tlwh(bbox_xywh)
         detections = [Detection(bbox_tlwh[i], conf, features[i]) for i, conf in enumerate(
             confidences) if conf > self.min_confidence]
+        labels = [labels[i] for i, conf in enumerate(confidences) if conf > self.min_confidence]
 
         # 非极大值抑制
         boxes = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
         indices = non_max_suppression(boxes, self.nms_max_overlap, scores)
         detections = [detections[i] for i in indices]
+        labels = [labels[i] for i in indices]
 
         # 更新跟踪器
         self.tracker.predict()

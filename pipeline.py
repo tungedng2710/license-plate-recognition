@@ -23,7 +23,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--video", type=str, default="data/cam1.mp4", help="path to video, 0 for webcam")
     parser.add_argument("--vehicle_weight", type=str,
-                        default="weights/vehicle_yolov8s.pt",
+                        default="weights/vehicle_yolov8n_1088.pt",
                         help="path to the yolov8 weight of vehicle detector")
     parser.add_argument("--plate_weight", type=str,
                         default="weights/plate_yolov8n.pt",
@@ -61,7 +61,7 @@ class Pipeline():
         self.config_deepsort = config_deepsort
         cfg = get_config()
         cfg.merge_from_file(self.config_deepsort)
-        self.deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
+        self.tracker = DeepSort(cfg.DEEPSORT.REID_CKPT,
                                  max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
                                  nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP,
                                  max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
@@ -134,7 +134,7 @@ class Pipeline():
                 # ---------------------- Tracking ----------------------
                 xywhs = vehicle_results[0].boxes.xywh.cpu()
                 confss = vehicle_results[0].boxes.conf.cpu()
-                outputs = self.deepsort.update(xywhs, confss, frame)
+                outputs = self.tracker.update(xywhs, confss, frame, vehicle_labels)
                 # Draw tracked boxes
                 vehicles = []
                 for idx in range(len(outputs)):
@@ -147,7 +147,16 @@ class Pipeline():
                     vehicle_bbox = vehicle["bbox_xyxy"]
                     src_point = (vehicle_bbox[0], vehicle_bbox[1])
                     dst_point = (vehicle_bbox[2], vehicle_bbox[3])
-                    cv2.rectangle(displayed_frame, src_point, dst_point, self.color["green"], thickness=2)
+                    color = compute_color(vehicle["id"])
+                    idx = str(vehicle["id"])
+                    t_size = cv2.getTextSize(idx, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
+                    cv2.rectangle(displayed_frame, src_point, dst_point, color, 2)
+                    cv2.rectangle(displayed_frame, src_point,
+                                  (vehicle_bbox[0] + t_size[0] + 3, vehicle_bbox[1] + t_size[1] + 4), 
+                                  color, -1)
+                    cv2.putText(displayed_frame, idx, 
+                                (vehicle_bbox[0], vehicle_bbox[1] + t_size[1] + 4), 
+                                cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
                 # ------------------------------------------------------
                 for index, box in enumerate(vehicle_boxes):
                     label_name = map_label(int(vehicle_labels[index]), VEHICLES)
@@ -171,7 +180,8 @@ class Pipeline():
                     plate_boxes = plate_results[0].boxes.xyxy
 
                     # Displaying plate detection
-                    for plate_box in plate_boxes:
+                    if len(plate_boxes) > 0:
+                        plate_box = plate_boxes[0]
                         plate_box = plate_box.cpu().numpy().astype(int)
                         src_point = (plate_box[0] + focused_box[0], plate_box[1] + focused_box[1])
                         dst_point = (plate_box[2] + focused_box[0], plate_box[3] + focused_box[1])
@@ -204,9 +214,9 @@ class Pipeline():
                                 pos = (int((box[0] + box[2]) / 2), box[1])
                                 plate_number = vehicle["plate_number"]
                                 info = f"{label_name} {plate_number}"
-                                draw_text(img=displayed_frame, text=info, pos=pos,
-                                          text_color=self.color["blue"],
-                                          text_color_bg=self.color["green"])
+                                # draw_text(img=displayed_frame, text=info, pos=pos,
+                                #           text_color=self.color["blue"],
+                                #           text_color_bg=self.color["green"])
                             else:
                                 vehicle["plate_number"] = "unavailable"
 
@@ -226,28 +236,28 @@ class Pipeline():
 
 if __name__ == "__main__":
     opts = get_args()
-    root_dir = "data/traffic_video_clean"
-    for video_name in os.listdir(root_dir):
-        if "mp4" in video_name:
-            print("Run inference on", os.path.join(root_dir, video_name))
-            pipeline = Pipeline(video=os.path.join(root_dir, video_name),
-                                vehicle_weight=opts.vehicle_weight,
-                                plate_weight=opts.plate_weight,
-                                config_deepsort=opts.config_deepsort) 
-            try:
-                pipeline.run(vconf=opts.vconf,
-                            pconf=opts.pconf,
-                            ocrconf_thres=0.9,
-                            hd_resolution=True,
-                            save_result=True,
-                            stream=False)
-            except:
-                continue
-    # pipeline = Pipeline(video=opts.video,
-    #                     vehicle_weight=opts.vehicle_weight,
-    #                     plate_weight=opts.plate_weight,
-    #                     config_deepsort=opts.config_deepsort)
-    # pipeline.run(vconf=opts.vconf,
-    #              pconf=opts.pconf,
-    #              hd_resolution = True,
-    #              save_result=opts.save)
+    # root_dir = "data/test_sample"
+    # for video_name in os.listdir(root_dir):
+    #     if "mp4" in video_name:
+    #         print("Run inference on", os.path.join(root_dir, video_name))
+    #         pipeline = Pipeline(video=os.path.join(root_dir, video_name),
+    #                             vehicle_weight=opts.vehicle_weight,
+    #                             plate_weight=opts.plate_weight,
+    #                             config_deepsort=opts.config_deepsort) 
+    #         # try:
+    #         pipeline.run(vconf=opts.vconf,
+    #                     pconf=opts.pconf,
+    #                     ocrconf_thres=0.9,
+    #                     hd_resolution=True,
+    #                     save_result=True,
+    #                     stream=False)
+    #         # except:
+    #         #     continue
+    pipeline = Pipeline(video=opts.video,
+                        vehicle_weight=opts.vehicle_weight,
+                        plate_weight=opts.plate_weight,
+                        config_deepsort=opts.config_deepsort)
+    pipeline.run(vconf=opts.vconf,
+                 pconf=opts.pconf,
+                 hd_resolution = True,
+                 save_result=opts.save)

@@ -11,6 +11,10 @@ BGR_COLORS = {
 }
 VEHICLES = ['bicycle', 'bus', 'car', 'motorcycle', 'truck']
 
+class MyDict(dict):
+    def __getattribute__(self, item):
+        return self[item]
+
 def map_label(class_idx, vehicle_labels):
     """
     Map argmax output to label name following COCO Object
@@ -126,3 +130,6 @@ def delete_file(path):
     """
     if os.path.exists(path):
         os.remove(path)
+
+def track(tracker):
+    pass
