@@ -9,14 +9,17 @@ BGR_COLORS = {
     "white": (255, 255, 255),
     "black": (0, 0, 0)
 }
-VEHICLES = ["bicycle", "bus", "car", "motorbike", "person", "truck"]
-# VEHICLES = ['bus', 'car', 'motorbike', 'truck']
+VEHICLES = ['bicycle', 'bus', 'car', 'motorcycle', 'truck']
 
-def map_label(index, labels):
+class MyDict(dict):
+    def __getattribute__(self, item):
+        return self[item]
+
+def map_label(class_idx, vehicle_labels):
     """
-    Map argmax output to label name
+    Map argmax output to label name following COCO Object
     """
-    return labels[index]
+    return vehicle_labels[class_idx]
 
 def check_image_size(image, w_thres, h_thres):
     """
@@ -127,3 +130,6 @@ def delete_file(path):
     """
     if os.path.exists(path):
         os.remove(path)
+
+def track(tracker):
+    pass
