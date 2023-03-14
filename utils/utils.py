@@ -157,4 +157,4 @@ def argmin(listing):
     """
     Find the index of the minimum value in a list
     """
-    return np.argminlisting)
+    return np.argmin(listing)

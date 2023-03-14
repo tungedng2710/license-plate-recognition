@@ -30,6 +30,7 @@ def get_args():
                         help="path to the yolov8 weight of plate detector")
     parser.add_argument("--vconf", type=float, default=0.6, help="confidence for vehicle detection")
     parser.add_argument("--pconf", type=float, default=0.25, help="confidence for plate detection")
+    parser.add_argument("--ocrconf_thres", type=float, default=0.9, help="threshold for ocr model")
     parser.add_argument("--save", action="store_true", help="save output video")
     parser.add_argument("--stream", action="store_true", help="real-time monitoring")
     parser.add_argument("--save_dir", type=str, default="data/logs", help="saved path")
@@ -194,18 +195,20 @@ class Pipeline():
                             plate_conf = []
                             for plate_detection in plate_detections:
                                 plate_xyxy.append(plate_detection.xyxy)
-                                plate_conf.append(plate_detection.conf)
-                            plate_box = plate_xyxy[argmax(plate_conf)]
+                                # print("hello", plate_detection.conf.cpu())
+                                plate_conf.append(plate_detection.conf.cpu().item())
+                            plate_box = plate_xyxy[argmax(plate_conf)][0]
                             del plate_xyxy, plate_conf
                         else:
                             plate_box = plate_detections.xyxy[-1]
                         plate_box = plate_box.cpu().numpy().astype(int)
                         src_point = (plate_box[0] + focused_box[0], plate_box[1] + focused_box[1])
                         dst_point = (plate_box[2] + focused_box[0], plate_box[3] + focused_box[1])
-                        if src_point[1] < thresh_h:
+                        if src_point[1] < thresh_h: # Ignore plate out of recognition zone
                             continue
                         cv2.rectangle(displayed_frame, src_point, dst_point, self.color["red"], thickness=2)
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
+
                         if check_image_size(cropped_plate, 16, 16):   # Ignore small plates
                             have_plate = True
                             # Zoom in and display the plate
@@ -234,7 +237,8 @@ class Pipeline():
                                 # Display to monitor
                                 pos = (int((box[0] + box[2]) / 2), box[1])
                                 plate_number = vehicles_dict[str(identity)]["plate_number"]
-                                info = f"{label_name} {plate_number}"
+                                conf = str(round(vehicles_dict[str(identity)]["ocr_conf"], 2))
+                                info = f"{label_name} {plate_number} {conf}"
                                 draw_text(img=displayed_frame, text=info, pos=pos,
                                           text_color=self.color["blue"],
                                           text_color_bg=self.color["green"])
@@ -262,6 +266,7 @@ if __name__ == "__main__":
                         config_deepsort=opts.config_deepsort)
     pipeline.run(vconf=opts.vconf,
                  pconf=opts.pconf,
+                 ocrconf_thres=opts.ocrconf_thres,
                  stream = opts.stream,
                  save_result=opts.save,
                  save_dir=opts.save_dir)
