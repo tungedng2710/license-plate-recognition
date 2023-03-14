@@ -177,7 +177,16 @@ class Pipeline():
                               text_color_bg=self.color["green"])
                 ocr_conf = 0.0
                 for identity in in_frame_indentities:
-                    box = vehicles_dict[str(identity)]["bbox_xyxy"].astype(int)
+                    vehicle = vehicles_dict[str(identity)]
+                    box = vehicle["bbox_xyxy"].astype(int)
+                    if ("plate_number" in vehicle) and ("ocr_conf" in vehicle): # Display ocr result if it exists
+                        if vehicle["ocr_conf"] > ocrconf_thres:
+                            pos = (box[0], box[1]+25)
+                            plate_number = vehicles_dict[str(identity)]["plate_number"]
+                            conf = str(round(vehicles_dict[str(identity)]["ocr_conf"], 2))
+                            draw_text(img=displayed_frame, text=plate_number, pos=pos,
+                                        text_color=self.color["blue"],
+                                        text_color_bg=self.color["green"])
                     # # Adjust the box to focus to the potential region
                     # focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], int(box[3] * 1.2)]
                     focused_box = box
