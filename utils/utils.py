@@ -1,5 +1,7 @@
 import os
 import cv2
+import torch
+import numpy as np
 
 BGR_COLORS = {
     "blue": (255, 0, 0),
@@ -9,7 +11,7 @@ BGR_COLORS = {
     "white": (255, 255, 255),
     "black": (0, 0, 0)
 }
-VEHICLES = ['bicycle', 'bus', 'car', 'motorcycle', 'truck']
+VEHICLES = ['xe dap', 'xe buyt', 'o to', 'xe may', 'xe tai']
 
 class MyDict(dict):
     def __getattribute__(self, item):
@@ -122,7 +124,11 @@ def resize_(image, scale):
     width = int(image.shape[1] * scale)
     height = int(image.shape[0] * scale)
     dsize = (width, height)
-    return cv2.resize(image, dsize)
+    image = cv2.resize(image, dsize)
+    image = cv2.copyMakeBorder(src=image, top=5, bottom=5, left=5, right=5,
+                               value=[0, 255, 0],
+                               borderType=cv2.BORDER_CONSTANT) 
+    return image
 
 def delete_file(path):
     """
@@ -131,5 +137,24 @@ def delete_file(path):
     if os.path.exists(path):
         os.remove(path)
 
-def track(tracker):
-    pass
+def preprocess_detection(detection):
+    """
+    Process yolov8 output
+    """
+    bboxes = detection[0].boxes
+    xywhs = bboxes.xywh
+    confss = bboxes.conf.unsqueeze(1)
+    classes = bboxes.cls.unsqueeze(1)
+    return torch.cat((xywhs, confss, classes), 1).cpu()
+
+def argmax(listing):
+    """
+    Find the index of the maximum value in a list
+    """
+    return np.argmax(listing)
+
+def argmin(listing):
+    """
+    Find the index of the minimum value in a list
+    """
+    return np.argminlisting)

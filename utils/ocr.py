@@ -121,9 +121,7 @@ class PPOCR(nn.Module):
         with open("utils/ppocr_configs.yaml") as f:
             configs = yaml.safe_load(f)
         configs["rec_model_dir"] = "weights/rec_ppocr_0.948/"
-        # args = utility.parse_args()a
         args = MyDict(configs)
-        
         self.text_recognizer = TextRecognizer(args)
 
     def forward(self, img_list):
@@ -161,7 +159,7 @@ class DummyOCR(nn.Module):
         number = int(10000 * number)
         number = str(number)
         letter = random.choice(string.ascii_uppercase)
-        dummy_output = f"30{letter}{number}"
+        dummy_output = (f"30{letter}{number}", 0.99)
         return dummy_output
 
 

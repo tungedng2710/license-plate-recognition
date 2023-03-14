@@ -31,14 +31,12 @@ class DeepSort(object):
         bbox_tlwh = self._xywh_to_tlwh(bbox_xywh)
         detections = [Detection(bbox_tlwh[i], conf, features[i]) for i, conf in enumerate(
             confidences) if conf > self.min_confidence]
-        labels = [labels[i] for i, conf in enumerate(confidences) if conf > self.min_confidence]
 
         # 非极大值抑制
         boxes = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
         indices = non_max_suppression(boxes, self.nms_max_overlap, scores)
         detections = [detections[i] for i in indices]
-        labels = [labels[i] for i in indices]
 
         # 更新跟踪器
         self.tracker.predict()
@@ -68,12 +66,12 @@ class DeepSort(object):
         return bbox_tlwh
 
     def _xywh_to_xyxy(self, bbox_xywh):
-        x, y, w, h = bbox_xywh
+        x, y, w, h, confss, labels = bbox_xywh
         x1 = max(int(x - w / 2), 0)
         x2 = min(int(x + w / 2), self.width - 1)
         y1 = max(int(y - h / 2), 0)
         y2 = min(int(y + h / 2), self.height - 1)
-        return x1, y1, x2, y2
+        return x1, y1, x2, y2, confss, labels
 
     def _tlwh_to_xyxy(self, bbox_tlwh):
 
@@ -99,7 +97,7 @@ class DeepSort(object):
     def _get_features(self, bbox_xywh, ori_img):
         im_crops = []
         for box in bbox_xywh:
-            x1, y1, x2, y2 = self._xywh_to_xyxy(box)
+            x1, y1, x2, y2, confss, labels = self._xywh_to_xyxy(box)
             im = ori_img[y1:y2, x1:x2]
             im_crops.append(im)
         if im_crops:
