@@ -51,7 +51,7 @@ def draw_text(img, text,
     x, y = pos
     text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
     text_w, text_h = text_size
-    bg_h = int(text_h * 1.3) # expand the background height a bit
+    bg_h = int(text_h) # expand the background height a bit
     cv2.rectangle(img, pos, (x + text_w, y + bg_h), text_color_bg, -1)
     pos = (x, y + text_h + font_scale)
     cv2.putText(img, text, pos, font, font_scale, text_color, font_thickness)

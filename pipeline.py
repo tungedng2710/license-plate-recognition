@@ -33,6 +33,7 @@ def get_args():
     parser.add_argument("--ocrconf_thres", type=float, default=0.9, help="threshold for ocr model")
     parser.add_argument("--save", action="store_true", help="save output video")
     parser.add_argument("--stream", action="store_true", help="real-time monitoring")
+    parser.add_argument("--show_zoomed_plate", action="store_true", help="zoom in detected plate")
     parser.add_argument("--save_dir", type=str, default="data/logs", help="saved path")
     parser.add_argument("--config_deepsort", type=str, default="tracking/configs/deep_sort.yaml")
     return parser.parse_args()
@@ -88,7 +89,8 @@ class Pipeline():
             ocrconf_thres: float = 0.9,
             save_result: bool = False,
             stream: bool = False,
-            save_dir: str = "data/logs"):
+            save_dir: str = "data/logs",
+            show_zoomed_plate: bool = True):
         """
         Run the pipeline end2end
         Args:
@@ -98,6 +100,7 @@ class Pipeline():
         - save_result (bool): save the result to file
         - stream (bool): show real-time video stream
         - save_dir (str): folder path to saved file
+        - show_zoomed_plate (bool): zoom in detected plate and show to monitor
         """
         # Get video properties
         vid_name = os.path.basename(self.video)
@@ -115,7 +118,7 @@ class Pipeline():
             vid_writer = cv2.VideoWriter(f"{log_path}/infered_{vid_name}", fourcc, fps, (w, h))
 
         # -------------------------- MAIN --------------------------
-        thresh_h = int(h / 5) # Limit detection zone
+        thresh_h = int(h / 5.5) # Limit detection zone
         vehicles_dict = {}
         while cap.isOpened():
             ret, frame = cap.read()
@@ -139,19 +142,14 @@ class Pipeline():
                 vehicle_results = preprocess_detection(vehicle_results)
                 outputs = self.tracker.update(vehicle_results, confss, frame, vehicle_labels)
                 # Draw tracked boxes
-                vehicles = []
+                in_frame_indentities = []
                 for idx in range(len(outputs)):
                     identity = outputs[idx, -1]
+                    in_frame_indentities.append(identity)
                     if not str(identity) in vehicles_dict.keys():
                         vehicles_dict[str(identity)] = {}
 
                     vehicles_dict[str(identity)]["bbox_xyxy"] = outputs[idx, :4]
-                    vehicle = {
-                        "id": outputs[idx, -1],
-                        "bbox_xyxy": outputs[idx, :4],
-                        "plate_number": "unavailable"
-                    }
-                    vehicles.append(vehicles_dict[str(identity)])
                     vehicle_bbox = vehicles_dict[str(identity)]["bbox_xyxy"]
                     src_point = (vehicle_bbox[0], vehicle_bbox[1])
                     dst_point = (vehicle_bbox[2], vehicle_bbox[3])
@@ -174,12 +172,11 @@ class Pipeline():
                     box = box.cpu().numpy().astype(int)
                     # Draw object information
                     draw_text(img=displayed_frame, text=label_name,
-                              pos=(int((box[0] + box[2]) / 2), box[1]),
+                              pos=(box[0]+40, box[1]),
                               text_color=self.color["blue"],
                               text_color_bg=self.color["green"])
                 ocr_conf = 0.0
-                # for vehicle in vehicles:
-                for identity in vehicles_dict.keys():
+                for identity in in_frame_indentities:
                     box = vehicles_dict[str(identity)]["bbox_xyxy"].astype(int)
                     # # Adjust the box to focus to the potential region
                     # focused_box = [box[0], int((box[3] + box[1]) / 2), box[2], int(box[3] * 1.2)]
@@ -195,7 +192,6 @@ class Pipeline():
                             plate_conf = []
                             for plate_detection in plate_detections:
                                 plate_xyxy.append(plate_detection.xyxy)
-                                # print("hello", plate_detection.conf.cpu())
                                 plate_conf.append(plate_detection.conf.cpu().item())
                             plate_box = plate_xyxy[argmax(plate_conf)][0]
                             del plate_xyxy, plate_conf
@@ -209,41 +205,34 @@ class Pipeline():
                         cv2.rectangle(displayed_frame, src_point, dst_point, self.color["red"], thickness=2)
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
 
-                        if check_image_size(cropped_plate, 16, 16):   # Ignore small plates
+                        if check_image_size(cropped_plate, 24, 16): # Ignore small plates
                             have_plate = True
-                            # Zoom in and display the plate
-                            displayed_plate = resize_(cropped_plate, 3)
-                            plate_pos = (int(displayed_plate.shape[0]) + box[1],
-                                         int(displayed_plate.shape[1]) + box[0])
-                            adjust_height = int((box[3] - box[1]) / 2)
-                            try:
-                                displayed_frame[box[1] + adjust_height:plate_pos[0] + adjust_height, \
-                                box[0]:plate_pos[1], :] = displayed_plate
-                            except:
-                                pass
-                            detected_plates.append(cropped_plate)
+                            if show_zoomed_plate: # Zoom in and display the plate
+                                displayed_plate = resize_(cropped_plate, 3)
+                                plate_pos = (int(displayed_plate.shape[0]) + box[1],
+                                            int(displayed_plate.shape[1]) + box[0])
+                                adjust_height = int((box[3] - box[1]) / 2)
+                                try:
+                                    displayed_frame[box[1] + adjust_height:plate_pos[0] + adjust_height, \
+                                    box[0]:plate_pos[1], :] = displayed_plate
+                                except:
+                                    pass
 
                         # OCR the detected plate and display to monitor
                         if have_plate:
                             # -------------- OCR module --------------
                             vehicle = vehicles_dict[str(identity)]
-                            if ("plate_number" not in vehicle) or (vehicle["plate_number"] == "nan"):
+                            if ("plate_number" not in vehicle) or vehicle["ocr_conf"] < ocrconf_thres:
                                 ocr_text, ocr_conf = self.ocr(cropped_plate)
                                 vehicles_dict[str(identity)]["ocr_conf"] = ocr_conf
-                            else:
-                                pass
-                            if vehicles_dict[str(identity)]["ocr_conf"] >= ocrconf_thres:
                                 vehicles_dict[str(identity)]["plate_number"] = ocr_text
-                                # Display to monitor
-                                pos = (int((box[0] + box[2]) / 2), box[1])
+                            else: # Display to monitor
+                                pos = (box[0], box[1]+25)
                                 plate_number = vehicles_dict[str(identity)]["plate_number"]
                                 conf = str(round(vehicles_dict[str(identity)]["ocr_conf"], 2))
-                                info = f"{label_name} {plate_number} {conf}"
-                                draw_text(img=displayed_frame, text=info, pos=pos,
+                                draw_text(img=displayed_frame, text=plate_number, pos=pos,
                                           text_color=self.color["blue"],
                                           text_color_bg=self.color["green"])
-                            else:
-                                vehicles_dict[str(identity)]["plate_number"] = "nan"
 
                 if save_result:
                     vid_writer.write(displayed_frame)
@@ -269,4 +258,5 @@ if __name__ == "__main__":
                  ocrconf_thres=opts.ocrconf_thres,
                  stream = opts.stream,
                  save_result=opts.save,
-                 save_dir=opts.save_dir)
+                 save_dir=opts.save_dir,
+                 show_zoomed_plate=opts.show_zoomed_plate)
