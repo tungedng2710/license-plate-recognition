@@ -30,7 +30,7 @@ cd license-plate-recognition
 ```
 Install required libraries
 ```bat
-pip install -r requirements.txt
+bash install.sh
 ```
 Run the script below to perform license plate recognition and display the output to monitor (press ```Q``` to exit the window)
 ```bat 
