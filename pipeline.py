@@ -137,9 +137,9 @@ class Pipeline():
                 detected_plates = []
 
                 # ---------------------- Tracking ----------------------
-                xywhs = vehicle_results[0].boxes.xywh.cpu()
                 confss = vehicle_results[0].boxes.conf.cpu() 
                 vehicle_results = preprocess_detection(vehicle_results)
+                print(vehicle_results)
                 outputs = self.tracker.update(vehicle_results, confss, frame, vehicle_labels)
                 # Draw tracked boxes
                 in_frame_indentities = []
