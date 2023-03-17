@@ -184,19 +184,21 @@ class Pipeline():
                     focused_box = box
                     cropped_vehicle = frame[focused_box[1]:focused_box[3], focused_box[0]:focused_box[2], :]
                     plate_results = self.plate_model(source=cropped_vehicle, conf=pconf, verbose=False)
-                    plate_detections = self.plate_model(cropped_vehicle)[3]
+                    full_detections = self.plate_model(cropped_vehicle)
+                    plate_detection = full_detections[3]
+
                     # Displaying plate detection
                     if len(plate_detections) > 0:
                         if len(plate_detections) > 1:
                             plate_xyxy = []
                             plate_conf = []
                             for plate_detection in plate_detections:
-                                plate_xyxy.append(plate_detection.xyxy)
-                                plate_conf.append(plate_detection.conf.cpu().item())
+                                plate_xyxy.append(plate_detection[:4]) # 
+                                plate_conf.append(plate_detection[4]) # confidence
                             plate_box = plate_xyxy[argmax(plate_conf)][0]
                             del plate_xyxy, plate_conf
                         else:
-                            plate_box = plate_detections.xyxy[-1]
+                            plate_box = full_detections[0][:4]
                         plate_box = plate_box.cpu().numpy().astype(int)
                         src_point = (plate_box[0] + focused_box[0], plate_box[1] + focused_box[1])
                         dst_point = (plate_box[2] + focused_box[0], plate_box[3] + focused_box[1])
