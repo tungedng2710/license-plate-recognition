@@ -12,7 +12,7 @@ from ultralytics import YOLO
 from tracking.utils.parser import get_config
 from tracking.deep_sort import DeepSort
 from utils.ocr import PPOCR
-from utils.utils import map_label, check_image_size, draw_text, resize_, draw_box, \
+from utils.utils import map_label, check_image_size, draw_text, resize_, draw_box, set_hd_resolution, \
     draw_tracked_boxes, compute_color, preprocess_detection, argmax, BGR_COLORS, VEHICLES
 
 
@@ -131,15 +131,12 @@ class Pipeline():
                 cv2.line(displayed_frame, (0, thresh_h), (w, thresh_h), self.color["blue"], 1)
                 # Detect vehicles
                 vehicle_results = self.vehicle_model(source=frame, conf=vconf, verbose=False)
-                vehicle_boxes_all = vehicle_results[0].boxes
                 vehicle_boxes = vehicle_results[0].boxes.xyxy  # Bounding box
                 vehicle_labels = vehicle_results[0].boxes.cls  # Predicted classes
-                detected_plates = []
 
                 # ---------------------- Tracking ----------------------
-                confss = vehicle_results[0].boxes.conf.cpu() 
+                confss = vehicle_results[0].boxes.conf.cpu()
                 vehicle_results = preprocess_detection(vehicle_results)
-                print(vehicle_results)
                 outputs = self.tracker.update(vehicle_results, confss, frame, vehicle_labels)
                 # Draw tracked boxes
                 in_frame_indentities = []
@@ -161,18 +158,17 @@ class Pipeline():
                                   (vehicle_bbox[0] + t_size[0] + 3, vehicle_bbox[1] + t_size[1] + 4), 
                                   color, -1)
                     cv2.putText(displayed_frame, idx, 
-                                (vehicle_bbox[0], vehicle_bbox[1] + t_size[1] + 4), 
+                                (vehicle_bbox[0], vehicle_bbox[1] + t_size[1] + 4),
                                 cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
                 # ------------------------------------------------------
                 for index, box in enumerate(vehicle_boxes):
                     label_name = map_label(int(vehicle_labels[index]), VEHICLES)
-                    have_plate = False
                     if box is None:
                         continue
                     box = box.cpu().numpy().astype(int)
                     # Draw object information
                     draw_text(img=displayed_frame, text=label_name,
-                              pos=(box[0]+40, box[1]),
+                              pos=(box[0]+50, box[1]),
                               text_color=self.color["blue"],
                               text_color_bg=self.color["green"])
                 ocr_conf = 0.0
@@ -183,7 +179,6 @@ class Pipeline():
                         if vehicle["ocr_conf"] > ocrconf_thres:
                             pos = (box[0], box[1]+25)
                             plate_number = vehicles_dict[str(identity)]["plate_number"]
-                            conf = str(round(vehicles_dict[str(identity)]["ocr_conf"], 2))
                             draw_text(img=displayed_frame, text=plate_number, pos=pos,
                                         text_color=self.color["blue"],
                                         text_color_bg=self.color["green"])
@@ -193,7 +188,6 @@ class Pipeline():
                     cropped_vehicle = frame[focused_box[1]:focused_box[3], focused_box[0]:focused_box[2], :]
                     plate_results = self.plate_model(source=cropped_vehicle, conf=pconf, verbose=False)
                     plate_detections = plate_results[0].boxes
-                    plate_boxes = plate_detections.xyxy
                     # Displaying plate detection
                     if len(plate_detections) > 0:
                         if len(plate_detections) > 1:
@@ -215,7 +209,6 @@ class Pipeline():
                         cropped_plate = cropped_vehicle[plate_box[1]:plate_box[3], plate_box[0]:plate_box[2], :]
 
                         if check_image_size(cropped_plate, 24, 16): # Ignore small plates
-                            have_plate = True
                             if show_zoomed_plate: # Zoom in and display the plate
                                 displayed_plate = resize_(cropped_plate, 3)
                                 plate_pos = (int(displayed_plate.shape[0]) + box[1],
@@ -227,8 +220,7 @@ class Pipeline():
                                 except:
                                     pass
 
-                        # OCR the detected plate and display to monitor
-                        if have_plate:
+                            # OCR the detected plate and display to monitor
                             # -------------- OCR module --------------
                             vehicle = vehicles_dict[str(identity)]
                             if ("plate_number" not in vehicle) or vehicle["ocr_conf"] < ocrconf_thres:
@@ -238,16 +230,17 @@ class Pipeline():
                             else: # Display to monitor
                                 pos = (box[0], box[1]+25)
                                 plate_number = vehicles_dict[str(identity)]["plate_number"]
-                                conf = str(round(vehicles_dict[str(identity)]["ocr_conf"], 2))
                                 draw_text(img=displayed_frame, text=plate_number, pos=pos,
                                           text_color=self.color["blue"],
                                           text_color_bg=self.color["green"])
+                        else:
+                            continue
 
                 if save_result:
                     vid_writer.write(displayed_frame)
                 if stream:
-                    cv2.imwrite("temp.jpg", displayed_frame)
-                    # cv2.imshow("TonTraffic", displayed_frame)
+                    # cv2.imwrite("temp.jpg", displayed_frame)
+                    cv2.imshow("TonAI Traffic Surveillance Camera", set_hd_resolution(displayed_frame))
                 if cv2.waitKey(25) & 0xFF == ord('q'):
                     break
 
