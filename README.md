@@ -1,11 +1,9 @@
 # YOLO-DeepSort: License plate recognition
 ## ToDo
-- [ ] Deployment
-- [ ] ONNX Running
-- [ ] Inference speed optimization
+- [x] TensorRT
+- [x] ONNX Running
 - [x] PPOCR
 - [x] DeepSort Tracking 
-- [x] EasyOCR
 - [x] Plate Detection
 - [x] Vehicle Detection
 
