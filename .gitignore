@@ -133,3 +133,10 @@ data
 runs
 *.pt
 *.jpg
+*.ipynb
+*.onnx
+*beta*
+*.engine
+*.sh
+lib_pponnxcr
+test*
