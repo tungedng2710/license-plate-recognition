@@ -1,4 +1,4 @@
-# TrafficCam: Traffic surveilliance
+# TrafficCam: Traffic surveillance
 ![Demo](data/demo.jpg)
 ## ToDo
 - [x] TensorRT Inference
@@ -16,9 +16,9 @@
 **Update 5th July 2024**: PPOCRv4 is added. Text detection is also added to improve performance for plates in different perspectives
 **Update 1st Nov 2023**: DeepSORT is replaced by SORT to speed up the flow. In addition, TensorRT inference and code for model conversion have been added.
 
-Both vehicle and plate detector based on the YOLOv8 model, please checkout the official repository [Ultralytics](https://github.com/ultralytics/ultralytics) to install enviroment for inference as well as training.
+Both vehicle and plate detector based on the YOLOv8 model, please checkout the official repository [Ultralytics](https://github.com/ultralytics/ultralytics) to install environment for inference as well as training.
 
-For instant usage, there are two trained model for both detection tasks are put in the ```weights``` folder (You may have to check the default path in code). In addition, you can train the yolov8 with your custom dataset with serveral lines of code in the ```detectors/yolov8/train_yolov8.py``` file.
+For instant usage, there are two trained model for both detection tasks are put in the ```weights``` folder (You may have to check the default path in code). In addition, you can train the yolov8 with your custom dataset with several lines of code in the ```detectors/yolov8/train_yolov8.py``` file.
 
 As regards plate recognition, [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) is used to recognized the plate information. Currently, it is run by ONNXRuntime with TensorRT Execution Provider backend.
 
