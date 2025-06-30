@@ -24,11 +24,11 @@ class YOLOv8():
     
     def export(self):
         self.model.info(verbose=True)
-        self.model.export(format="onnx", dynamic=False, opset=12, batch=1)
+        self.model.export(format="onnx", dynamic=True, opset=12, imgsz=320)
         
 
 if __name__ == "__main__":
-    yolov8 = YOLOv8("license-plate-recognition/vehicle_yolov8s_640.pt")
+    yolov8 = YOLOv8("weights/plate_yolov8n_320_2024.pt")
     yolov8.export()
 
     # image = np.random.rand(1, 3, 640, 640).astype(np.float32)
