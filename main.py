@@ -7,13 +7,14 @@ import cv2
 import numpy as np
 import torch
 import re
+from typing import Dict
 from time import time
 
 from ultralytics import YOLO
 from tracking.deep_sort import DeepSort
 from tracking.sort import Sort
 from utils.utils import map_label, check_image_size, draw_text, check_legit_plate, \
-    gettime, compute_color, argmax, BGR_COLORS, VEHICLES, crop_expanded_plate
+    gettime, compute_color, argmax, BGR_COLORS, VEHICLES, crop_expanded_plate, Vehicle
 from ppocr_onnx import DetAndRecONNXPipeline as PlateReader
 # from ultralytics.utils.checks import check_requirements
 
@@ -116,6 +117,7 @@ class TrafficCam():
         # DeepSort Tracking
         self.deepsort = opts.deepsort
         self.dsort_weight = opts.dsort_weight
+        self.vehicles: Dict[int, Vehicle] = {}
         self.init_tracker()
 
         # Miscellaneous for displaying
@@ -152,7 +154,7 @@ class TrafficCam():
                                     use_cuda=torch.cuda.is_available())
         else:
             self.tracker = Sort()
-        self.vehicles_dict = {}
+        self.vehicles = {}
 
     def run(self):
         """
@@ -229,15 +231,11 @@ class TrafficCam():
                 for idx in range(len(outputs)):
                     identity = outputs[idx, -1]
                     in_frame_indentities.append(identity)
-                    if str(identity) not in self.vehicles_dict:
-                        self.vehicles_dict[str(identity)] = {"save": False,
-                                                             "saved_plate": False,
-                                                             "plate_image": None,
-                                                             "vehicle_image": None}
-                    self.vehicles_dict[str(
-                        identity)]["bbox_xyxy"] = outputs[idx, :4]
-                    vehicle_bbox = self.vehicles_dict[str(
-                        identity)]["bbox_xyxy"]
+                    if identity not in self.vehicles:
+                        self.vehicles[identity] = Vehicle(track_id=identity)
+                    vehicle = self.vehicles[identity]
+                    vehicle.bbox_xyxy = outputs[idx, :4]
+                    vehicle_bbox = vehicle.bbox_xyxy
                     src_point = (vehicle_bbox[0], vehicle_bbox[1])
                     dst_point = (vehicle_bbox[2], vehicle_bbox[3])
                     color = compute_color(identity)
@@ -265,14 +263,10 @@ class TrafficCam():
                     active_vehicles = []
                     input_batch = []
                     for identity in in_frame_indentities:
-                        vehicle = self.vehicles_dict[str(identity)]
-                        if "ocr_conf" not in vehicle:
-                            vehicle["ocr_conf"] = 0.0
-                            vehicle["plate_number"] = "nan"
-                        box = vehicle["bbox_xyxy"].astype(int)
-                        plate_number = self.vehicles_dict[str(
-                            identity)]["plate_number"]
-                        success = (vehicle["ocr_conf"] > self.ocr_thres) \
+                        vehicle = self.vehicles[identity]
+                        box = vehicle.bbox_xyxy.astype(int)
+                        plate_number = vehicle.plate_number
+                        success = (vehicle.ocr_conf > self.ocr_thres) \
                             and len(plate_number) > 5 \
                             and check_legit_plate(plate_number)
                         if success:
@@ -283,22 +277,20 @@ class TrafficCam():
                                 pos=pos,
                                 text_color=self.color["blue"],
                                 text_color_bg=self.color["green"])
-                            if self.save and not vehicle["save"]:
+                            if self.save and not vehicle.save:
                                 cropped_vehicle = frame[box[1]
                                     :box[3], box[0]:box[2], :]
                                 # cv2.imwrite(f"{detected_objects_path}/{plate_number}.jpg", cropped_vehicle)
-                                if check_image_size(vehicle["plate_image"], 32, 16):
+                                if check_image_size(vehicle.plate_image, 32, 16):
                                     cv2.imwrite(
                                         f"{detected_plates_path}/{plate_number}.jpg",
-                                        vehicle["plate_image"])
+                                        vehicle.plate_image)
                                     if cropped_vehicle is not None:
                                         cv2.imwrite(
                                             f"{detected_objects_path}/{plate_number}.jpg", cropped_vehicle)
-                                    del vehicle["plate_image"]
-                                    del vehicle["vehicle_image"]
-                                    vehicle["vehicle_image"] = None
-                                    vehicle["plate_image"] = None
-                                    vehicle["save"] = True
+                                    vehicle.vehicle_image = None
+                                    vehicle.plate_image = None
+                                    vehicle.save = True
                             continue
                         else:
                             # if box[1] < thresh_h: # Ignore vehicle out of recognition zone
@@ -308,7 +300,7 @@ class TrafficCam():
                             # detector
                             cropped_vehicle = frame[box[1]
                                 :box[3], box[0]:box[2], :]
-                            vehicle["vehicle_image"] = cropped_vehicle
+                            vehicle.vehicle_image = cropped_vehicle
                             if not check_image_size(
                                     cropped_vehicle, 112, 112):  # ignore too small image!
                                 continue
@@ -325,7 +317,7 @@ class TrafficCam():
                         for id, detection in enumerate(plate_detections):
                             vehicle = active_vehicles[id]
                             cropped_vehicle = input_batch[id]
-                            box = vehicle["bbox_xyxy"].astype(int)
+                            box = vehicle.bbox_xyxy.astype(int)
                             plate_xyxy = detection.boxes.xyxy
                             if len(plate_xyxy) < 1:
                                 continue
@@ -342,27 +334,27 @@ class TrafficCam():
                                 dst_point,
                                 self.color["green"],
                                 thickness=2)
-                            # cropped_plate = cropped_vehicle[plate_xyxy[1]:plate_xyxy[3], \
-                            # plate_xyxy[0]:plate_xyxy[2], :]
                             try:
                                 cropped_plate = crop_expanded_plate(
                                     plate_xyxy, cropped_vehicle, 0.15)
                             except BaseException:
                                 cropped_plate = np.zeros((8, 8, 3))
-                            vehicle["plate_image"] = cropped_plate
+                            vehicle.plate_image = cropped_plate
+                            vehicle.license_plate_bbox = plate_xyxy + \
+                                np.array([box[0], box[1], box[0], box[1]])
                             vehicle_having_plate.append(vehicle)
 
                         if len(vehicle_having_plate) > 0:
                             for vehicle in vehicle_having_plate:
                                 plate_info, conf = self.extract_plate(
-                                    vehicle["plate_image"])
-                                cur_ocr_conf = vehicle["ocr_conf"]
+                                    vehicle.plate_image)
+                                cur_ocr_conf = vehicle.ocr_conf
                                 if conf > cur_ocr_conf:
-                                    vehicle["plate_number"] = plate_info
-                                    vehicle["ocr_conf"] = conf
+                                    vehicle.plate_number = plate_info
+                                    vehicle.ocr_conf = conf
 
                 #  ---------------- MISCELLANEOUS ---------------- #
-                # ids = list(map(int, list(self.vehicles_dict.keys())))
+                # ids = list(self.vehicles.keys())
                 # num_vehicle = 0 if len(ids) == 0 else max(ids)
                 t = gettime() - t0_fps
                 fps_info = int(round(1 / t, 0))
