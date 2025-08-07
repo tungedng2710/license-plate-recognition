@@ -10,6 +10,12 @@
     const datasetModal = document.getElementById('dataset-modal');
     const modalClose = document.getElementById('modal-close');
     const startBtn = document.getElementById('start-btn');
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    const sidebar = document.querySelector('.sidebar');
+
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('hidden');
+    });
 
     function handleRouteChange() {
       const hash = window.location.hash;
