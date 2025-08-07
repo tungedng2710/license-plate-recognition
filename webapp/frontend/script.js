@@ -8,10 +8,19 @@
     const datasetsPage = document.getElementById('datasets-page');
     const projectsPage = document.getElementById('projects-page');
     const datasetModal = document.getElementById('dataset-modal');
-    const modalClose = document.getElementById('modal-close');
-    const startBtn = document.getElementById('start-btn');
-    const toggleBtn = document.getElementById('toggle-sidebar');
-    const sidebar = document.querySelector('.sidebar');
+  const modalClose = document.getElementById('modal-close');
+  const startBtn = document.getElementById('start-btn');
+  const toggleBtn = document.getElementById('toggle-sidebar');
+  const sidebar = document.querySelector('.sidebar');
+
+   VANTA.WAVES({
+     el: '#home-page',
+     color: 0x1d4ed8,
+     shininess: 50,
+     waveHeight: 20,
+     waveSpeed: 0.75,
+     zoom: 0.8
+   });
 
     toggleBtn.addEventListener('click', () => {
       const isCollapsed = sidebar.classList.toggle('collapsed');
