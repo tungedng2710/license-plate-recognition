@@ -3,6 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const alprResult = document.getElementById('alpr-result');
   const alprImageInput = document.getElementById('alpr-image');
   const alprUploadedImage = document.getElementById('alpr-uploaded-image');
+  const toggleBtn = document.getElementById('toggle-sidebar');
+  const sidebar = document.querySelector('.sidebar');
+
+  toggleBtn.addEventListener('click', () => {
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    toggleBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
+  });
 
   alprImageInput.addEventListener('change', () => {
     const file = alprImageInput.files[0];

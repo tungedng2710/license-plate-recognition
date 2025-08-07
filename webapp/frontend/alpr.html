@@ -6,16 +6,18 @@
   <title>ALPR</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="alpr.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
   <div class="sidebar">
+    <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-left"></i></button>
     <div class="flex items-center justify-center my-4">
       <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
       <h1 class="text-2xl font-bold text-white">TonAI</h1>
     </div>
-    <a href="index.html#/home" id="home-link">Home</a>
-    <a href="index.html#/training" id="training-link">Training</a>
-    <a href="index.html#/projects" id="projects-link" class="active">Projects</a>
+    <a href="index.html#/home" id="home-link"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
+    <a href="index.html#/training" id="training-link"><i class="fas fa-chalkboard-teacher"></i><span class="link-text">Training</span></a>
+    <a href="index.html#/projects" id="projects-link" class="active"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
   </div>
   <div class="main-content">
     <h1 class="text-5xl font-bold mb-10 text-center title">License Plate Recognition</h1>

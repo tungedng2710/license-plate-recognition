@@ -13,11 +13,9 @@
     const toggleBtn = document.getElementById('toggle-sidebar');
     const sidebar = document.querySelector('.sidebar');
 
-    toggleBtn.style.left = '210px';
-
     toggleBtn.addEventListener('click', () => {
-      const isHidden = sidebar.classList.toggle('hidden');
-      toggleBtn.style.left = isHidden ? '10px' : '210px';
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      toggleBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
     });
 
     function handleRouteChange() {
