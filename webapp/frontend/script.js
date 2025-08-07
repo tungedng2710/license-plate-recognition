@@ -15,10 +15,10 @@
 
    VANTA.WAVES({
      el: '#home-page',
-     color: 0x1d4ed8,
-     shininess: 50,
-     waveHeight: 20,
-     waveSpeed: 0.75,
+     color: 0x001f3f,
+     shininess: 20,
+     waveHeight: 10,
+     waveSpeed: 0.5,
      zoom: 0.8
    });
 

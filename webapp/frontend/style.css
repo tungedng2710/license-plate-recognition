@@ -13,6 +13,7 @@ body {
   font-family: 'Roboto', sans-serif;
   margin: 0;
   display: flex;
+  flex-direction: column;
   background-color: #111827;
   color: white;
   height: 100%;
@@ -23,6 +24,29 @@ body {
   color: white;
   border: none;
   padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.top-bar {
+  height: 50px;
+  background-color: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+}
+
+.login-btn {
+  background-color: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 8px 16px;
   border-radius: 5px;
   cursor: pointer;
 }
@@ -38,17 +62,6 @@ body {
 
 .sidebar.collapsed {
   width: 60px;
-}
-
-.sidebar .toggle-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.sidebar.collapsed .toggle-btn {
-  right: auto;
-  left: 10px;
 }
 
 .sidebar a {
@@ -132,7 +145,6 @@ body {
     border-radius: 8px;
 }
 
-
 #datasets div img {
   object-fit: cover;
   height: 100px; /* Or any other fixed height */
@@ -153,7 +165,6 @@ body {
     padding: 20px;
     border-radius: 8px;
 }
-
 
 #projects-page .title {
   font-size: 3rem;
@@ -223,4 +234,3 @@ body {
 #dataset-modal canvas {
   max-width: 100%;
 }
-
