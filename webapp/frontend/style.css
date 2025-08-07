@@ -18,6 +18,19 @@ body {
   height: 100%;
 }
 
+.toggle-btn {
+  position: fixed;
+  top: 10px;
+  left: 210px;
+  background-color: #1f2937;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
 .sidebar {
   width: 200px;
   background-color: #1f2937;

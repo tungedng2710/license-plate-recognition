@@ -10,6 +10,15 @@
     const datasetModal = document.getElementById('dataset-modal');
     const modalClose = document.getElementById('modal-close');
     const startBtn = document.getElementById('start-btn');
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    const sidebar = document.querySelector('.sidebar');
+
+    toggleBtn.style.left = '210px';
+
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = sidebar.classList.toggle('hidden');
+      toggleBtn.style.left = isHidden ? '10px' : '210px';
+    });
 
     function handleRouteChange() {
       const hash = window.location.hash;
