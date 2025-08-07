@@ -63,7 +63,7 @@ class ALPR:
         vehicle_detection = self.vehicle_detector(
             image,
             verbose=False,
-            device=opts.device,
+            device=self.opts.device,
             imgsz=640,
             conf=self.opts.vconf)[0]
         vehicle_boxes = vehicle_detection.boxes

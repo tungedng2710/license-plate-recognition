@@ -1,32 +1,66 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const homeLink = document.getElementById('home-link');
-  const trainingLink = document.getElementById('training-link');
-  const homePage = document.getElementById('home-page');
-  const trainingPage = document.getElementById('training-page');
-  const startBtn = document.getElementById('start-btn');
+  document.addEventListener('DOMContentLoaded', () => {
+    const homeLink = document.getElementById('home-link');
+    const trainingLink = document.getElementById('training-link');
+    const projectsLink = document.getElementById('projects-link');
+    const homePage = document.getElementById('home-page');
+    const trainingPage = document.getElementById('training-page');
+    const projectsPage = document.getElementById('projects-page');
+    const startBtn = document.getElementById('start-btn');
+    const alprBtn = document.getElementById('alpr-btn');
+    const alprDemo = document.getElementById('alpr-demo');
+    const alprForm = document.getElementById('alpr-form');
+    const alprResult = document.getElementById('alpr-result');
 
-  function handleRouteChange() {
-    const hash = window.location.hash;
-    if (hash === '#/training') {
-      homePage.style.display = 'none';
-      trainingPage.style.display = 'block';
-      homeLink.classList.remove('active');
-      trainingLink.classList.add('active');
-    } else {
-      homePage.style.display = 'flex';
-      trainingPage.style.display = 'none';
-      homeLink.classList.add('active');
-      trainingLink.classList.remove('active');
+    function handleRouteChange() {
+      const hash = window.location.hash;
+      if (hash === '#/training') {
+        homePage.style.display = 'none';
+        trainingPage.style.display = 'block';
+        projectsPage.style.display = 'none';
+        homeLink.classList.remove('active');
+        trainingLink.classList.add('active');
+        projectsLink.classList.remove('active');
+      } else if (hash === '#/projects') {
+        homePage.style.display = 'none';
+        trainingPage.style.display = 'none';
+        projectsPage.style.display = 'block';
+        homeLink.classList.remove('active');
+        trainingLink.classList.remove('active');
+        projectsLink.classList.add('active');
+        alprDemo.classList.add('hidden');
+        alprResult.src = '';
+      } else {
+        homePage.style.display = 'flex';
+        trainingPage.style.display = 'none';
+        projectsPage.style.display = 'none';
+        homeLink.classList.add('active');
+        trainingLink.classList.remove('active');
+        projectsLink.classList.remove('active');
+      }
     }
-  }
 
   window.addEventListener('hashchange', handleRouteChange);
   // Handle initial page load
   handleRouteChange();
 
-  startBtn.addEventListener('click', () => {
-    window.location.hash = '#/training';
-  });
+    startBtn.addEventListener('click', () => {
+      window.location.hash = '#/training';
+    });
+
+    alprBtn.addEventListener('click', () => {
+      alprDemo.classList.remove('hidden');
+    });
+
+    alprForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = document.getElementById('alpr-image').files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/alpr', { method: 'POST', body: formData });
+      const blob = await res.blob();
+      alprResult.src = URL.createObjectURL(blob);
+    });
 
   async function loadDatasets() {
     const res = await fetch('/api/datasets');

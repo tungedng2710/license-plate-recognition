@@ -12,10 +12,11 @@
       <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
       <h1 class="text-2xl font-bold text-white">TonAI</h1>
     </div>
-    <a href="#/home" id="home-link" class="active">Home</a>
-    <a href="#/training" id="training-link">Training</a>
-  </div>
-  <div class="main-content">
+      <a href="#/home" id="home-link" class="active">Home</a>
+      <a href="#/training" id="training-link">Training</a>
+      <a href="#/projects" id="projects-link">Projects</a>
+    </div>
+    <div class="main-content">
     <div id="home-page" class="flex justify-center items-center">
       <div class="ambient-light"></div>
       <div class="content">
@@ -26,7 +27,7 @@
         </div>
       </div>
     </div>
-    <div id="training-page" style="display: none;">
+      <div id="training-page" style="display: none;">
       <h1 class="text-3xl font-bold mb-6 text-center">TonAI Computer Vision Hub</h1>
 
       <section>
@@ -74,10 +75,24 @@
           </div>
           <p id="progressText" class="text-sm mt-1 text-gray-700">0%</p>
         </div>
-      </section>
+        </section>
+      </div>
+      <div id="projects-page" style="display: none;">
+        <h1 class="text-3xl font-bold mb-6 text-center">Projects</h1>
+        <div class="flex justify-center gap-4 mb-6">
+          <button id="alpr-btn" class="bg-blue-600 text-white px-4 py-2 rounded">ALPR</button>
+          <a href="https://huggingface.co/spaces/tungedng2710/TonAI-OCR" target="_blank" class="bg-green-600 text-white px-4 py-2 rounded flex items-center">OCR Document</a>
+        </div>
+        <div id="alpr-demo" class="hidden flex flex-col items-center">
+          <form id="alpr-form" class="mb-4">
+            <input type="file" id="alpr-image" accept="image/*" class="mb-2" required />
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Predict</button>
+          </form>
+          <img id="alpr-result" class="max-w-full" />
+        </div>
+      </div>
     </div>
-  </div>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
   <script src="script.js"></script>
 </body>
 </html>

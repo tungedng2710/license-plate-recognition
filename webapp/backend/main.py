@@ -1,10 +1,15 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, UploadFile, File
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response
 from pydantic import BaseModel
 from pathlib import Path
 import subprocess
 import re
 from threading import Lock
+import numpy as np
+import cv2
+from types import SimpleNamespace
+from test_alpr import ALPR
 
 app = FastAPI()
 
@@ -13,6 +18,17 @@ STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
 TRAIN_SCRIPT = REPO_ROOT / "detectors" / "yolov9" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
+
+# Initialize ALPR model
+opts = SimpleNamespace(
+    vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolov8s_640.pt"),
+    plate_weight=str(REPO_ROOT / "weights" / "plate_yolov8n_320_2024.pt"),
+    vconf=0.6,
+    pconf=0.25,
+    ocr_thres=0.8,
+    device="cpu",
+)
+alpr_model = ALPR(opts)
 
 class TrainRequest(BaseModel):
     dataset: str
@@ -115,5 +131,15 @@ def run_training(req: TrainRequest):
 def train(req: TrainRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_training, req)
     return {"status": "started"}
+
+
+@app.post("/api/alpr")
+async def alpr(file: UploadFile = File(...)):
+    data = await file.read()
+    img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    alpr_model.vehicles = []
+    result = alpr_model(img)
+    _, buffer = cv2.imencode('.jpg', result)
+    return Response(content=buffer.tobytes(), media_type="image/jpeg")
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

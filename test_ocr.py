@@ -4,12 +4,10 @@ import time
 import re
 import tqdm
 import json
-from ppocr_onnx import DetAndRecONNXPipeline
+from ton_ocr import TonOCRPipeline
 from utils.utils import check_legit_plate, check_image_size
 
-PLATE_READER = DetAndRecONNXPipeline(
-    text_det_onnx_model="weights/ppocrv4/ch_PP-OCRv4_det_infer.onnx",
-    text_rec_onnx_model="updated_model_dyn.onnx")
+PLATE_READER = TonOCRPipeline()
 
 
 def extract_plate_info(plate_image, conf_thres):
@@ -22,7 +20,7 @@ def extract_plate_info(plate_image, conf_thres):
     Returns:
         (string, float): OCR result and average confidence
     """
-    results = PLATE_READER.detect_and_ocr(plate_image)``
+    results = PLATE_READER.predict(plate_image)
     if len(results) > 0:
         plate_info = ''
         conf = []
