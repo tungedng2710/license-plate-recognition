@@ -212,8 +212,8 @@ class TrafficCam():
                     conf=self.opts.vconf)[0]
                 # print(f"Inference time: {time() - t1}")
                 vehicle_boxes = vehicle_detection.boxes
-                vehicle_xyxy = vehicle_boxes.xyxy
-                vehicle_labels = vehicle_boxes.cls
+                # vehicle_xyxy = vehicle_boxes.xyxy
+                # vehicle_labels = vehicle_boxes.cls
                 try:
                     if self.deepsort:
                         outputs = self.tracker.update(vehicle_boxes.cpu().xywh,
