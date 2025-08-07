@@ -19,16 +19,12 @@ body {
 }
 
 .toggle-btn {
-  position: fixed;
-  top: 10px;
-  left: 210px;
   background-color: #1f2937;
   color: white;
   border: none;
   padding: 10px;
   border-radius: 5px;
   cursor: pointer;
-  z-index: 1000;
 }
 
 .sidebar {
@@ -36,15 +32,46 @@ body {
   background-color: #1f2937;
   padding: 20px;
   flex-shrink: 0; /* Prevent sidebar from shrinking */
+  position: relative;
+  transition: width 0.3s;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+}
+
+.sidebar .toggle-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.sidebar.collapsed .toggle-btn {
+  right: auto;
+  left: 10px;
 }
 
 .sidebar a {
-  display: block;
+  display: flex;
+  align-items: center;
   color: white;
   padding: 10px;
   text-decoration: none;
   border-radius: 5px;
   margin-bottom: 10px;
+  gap: 10px;
+}
+
+.sidebar.collapsed a {
+  justify-content: center;
+}
+
+.sidebar.collapsed a span {
+  display: none;
+}
+
+.sidebar.collapsed h1 {
+  display: none;
 }
 
 .sidebar a.active, .sidebar a:hover {
