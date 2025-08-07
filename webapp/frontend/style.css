@@ -138,3 +138,26 @@ body {
     padding: 20px;
     border-radius: 8px;
 }
+
+#projects-page .project-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 150px;
+  background-color: #1f2937;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+#projects-page .project-card:hover {
+  background-color: #374151;
+  transform: translateY(-2px);
+}
