@@ -8,6 +8,7 @@ import re
 from threading import Lock
 import numpy as np
 import cv2
+import json
 from types import SimpleNamespace
 from test_alpr import ALPR
 
@@ -18,6 +19,13 @@ STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
 TRAIN_SCRIPT = REPO_ROOT / "detectors" / "yolov9" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
+
+with open(REPO_ROOT / "minio_config.json") as f:
+    MINIO_CFG = json.load(f)
+MINIO_ENDPOINT = MINIO_CFG["endpoint"]
+MINIO_ACCESS_KEY = MINIO_CFG["access_key"]
+MINIO_SECRET_KEY = MINIO_CFG["secret_key"]
+MINIO_BUCKET = MINIO_CFG["bucket"]
 
 # Initialize ALPR model
 opts = SimpleNamespace(
@@ -40,12 +48,12 @@ class TrainRequest(BaseModel):
 def list_datasets() -> list[str]:
     try:
         subprocess.run(
-            ["/usr/local/bin/mc", "alias", "set", "local", "http://localhost:9000", "minioadmin", "minioadmin"],
+            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
             check=True,
             capture_output=True,
         )
         result = subprocess.run(
-            ["/usr/local/bin/mc", "ls", "local/ivadatasets"],
+            ["/usr/local/bin/mc", "ls", f"local/{MINIO_BUCKET}"],
             check=True,
             capture_output=True,
             text=True,
@@ -64,9 +72,37 @@ def list_datasets() -> list[str]:
 def get_datasets():
     return {"datasets": list_datasets()}
 
-@app.get("/api/datasets/{dataset_name}/samples")
-def get_dataset_samples(dataset_name: str):
-    return {"images": []}
+def dataset_stats(dataset_name: str) -> dict:
+    try:
+        subprocess.run(
+            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
+            check=True,
+            capture_output=True,
+        )
+        stats: dict[str, int | list[str]] = {}
+        for split in ["train", "val", "test"]:
+            result = subprocess.run(
+                ["/usr/local/bin/mc", "ls", f"local/{MINIO_BUCKET}/{dataset_name}/{split}/images"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            lines = [line for line in result.stdout.splitlines() if line.strip()]
+            stats[split] = len(lines)
+            if split == "train":
+                samples = [l.split()[-1] for l in lines][:12]
+                stats["samples"] = [
+                    f"{MINIO_ENDPOINT}/{MINIO_BUCKET}/{dataset_name}/train/images/{s}"
+                    for s in samples
+                ]
+        return stats
+    except Exception:
+        return {"train": 0, "val": 0, "test": 0, "samples": []}
+
+
+@app.get("/api/datasets/{dataset_name}/stats")
+def get_dataset_stats(dataset_name: str):
+    return dataset_stats(dataset_name)
 
 
 training_progress = 0

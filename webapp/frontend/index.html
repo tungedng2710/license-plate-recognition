@@ -14,6 +14,7 @@
     </div>
       <a href="#/home" id="home-link" class="active">Home</a>
       <a href="#/training" id="training-link">Training</a>
+      <a href="#/datasets" id="datasets-link">Datasets</a>
       <a href="#/projects" id="projects-link">Projects</a>
     </div>
     <div class="main-content">
@@ -75,7 +76,11 @@
           </div>
           <p id="progressText" class="text-sm mt-1 text-gray-700">0%</p>
         </div>
-        </section>
+      </section>
+      </div>
+      <div id="datasets-page" style="display: none;">
+        <h1 class="text-3xl font-bold mb-6 text-center">Datasets</h1>
+        <div id="dataset-cards" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
       </div>
       <div id="projects-page" style="display: none;">
         <h1 class="text-5xl font-bold mb-10 text-center title">Projects</h1>
@@ -85,7 +90,19 @@
         </div>
       </div>
     </div>
+    <div id="dataset-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white text-black p-6 rounded-lg w-80">
+        <div class="flex justify-between items-center mb-4">
+          <h2 id="modal-title" class="text-xl font-bold"></h2>
+          <button id="modal-close" class="text-gray-500">&times;</button>
+        </div>
+          <canvas id="datasetChart" class="mb-4"></canvas>
+          <div id="sample-images" class="grid grid-cols-3 gap-2 mb-4"></div>
+          <p id="dataset-counts" class="text-center"></p>
+        </div>
+      </div>
     <script src="https://cdn.tailwindcss.com"></script>
-  <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
