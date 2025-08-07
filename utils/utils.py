@@ -8,6 +8,8 @@ import cv2
 import time
 import torch
 import numpy as np
+from dataclasses import dataclass
+from typing import Optional
 from datetime import datetime
 
 BGR_COLORS = {
@@ -44,18 +46,25 @@ COLOR_HSV = {
 class MyDict(dict):
     def __getattribute__(self, item):
         return self[item]
-    
+
+
+@dataclass
 class Vehicle:
-    track_id: int = 0
+    """Container for vehicle tracking and recognition metadata."""
+
+    track_id: int
+    vehicle_type: str = ""  # Detected vehicle category
+    bbox_xyxy: Optional[np.ndarray] = None  # Vehicle bounding box [x1, y1, x2, y2]
+    vehicle_image: Optional[np.ndarray] = None  # Cropped vehicle image
+    plate_image: Optional[np.ndarray] = None  # Cropped license plate image
+    plate_number: str = "nan"  # Recognized plate text
+    ocr_conf: float = 0.0  # Confidence of OCR result
+    license_plate_bbox: Optional[np.ndarray] = None  # Plate bbox in image coords
     vehicle_detection_score: float = 0.0
-    vehicle_type: str = ""
-    vehicle_bbox: np.ndarray = None # xyxy
-    vehicle_image: np.ndarray = None
-    license_plate_image: np.ndarray = None
-    license_plate: str = ""
-    license_plate_bbox: np.ndarray = None # xyxy
     license_plate_score: float = 0.0
-    tracking_feature_vector: np.ndarray
+    tracking_feature_vector: Optional[np.ndarray] = None
+    save: bool = False  # Whether vehicle/plate images have been saved
+    saved_plate: bool = False
     is_recognized: bool = False
 
 def draw_detections(img, box, class_id, lang='en'):
