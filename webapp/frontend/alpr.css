@@ -1,0 +1,49 @@
+
+#alpr-demo {
+  background-color: rgba(31, 41, 55, 0.8);
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+#alpr-form input[type="file"] {
+  background-color: #374151;
+  color: white;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+#alpr-form button {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#alpr-form button:hover {
+  background-color: #1d4ed8;
+}
+
+.image-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.image-box {
+    width: 45%;
+    border: 2px solid #374151;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #1f2937;
+}
+
+#alpr-uploaded-image, #alpr-result {
+  margin-top: 20px;
+  border: 2px solid #374151;
+  border-radius: 8px;
+}

@@ -28,7 +28,7 @@
       </div>
     </div>
       <div id="training-page" style="display: none;">
-      <h1 class="text-3xl font-bold mb-6 text-center">TonAI Computer Vision Hub</h1>
+      <h1 class="text-3xl font-bold mb-6 text-center">Train YOLO Models</h1>
 
       <section>
         <h2 class="text-xl font-semibold mb-2">Available Datasets</h2>
@@ -78,17 +78,10 @@
         </section>
       </div>
       <div id="projects-page" style="display: none;">
-        <h1 class="text-3xl font-bold mb-6 text-center">Projects</h1>
-        <div class="flex justify-center gap-4 mb-6">
-          <button id="alpr-btn" class="bg-blue-600 text-white px-4 py-2 rounded">ALPR</button>
-          <a href="https://huggingface.co/spaces/tungedng2710/TonAI-OCR" target="_blank" class="bg-green-600 text-white px-4 py-2 rounded flex items-center">OCR Document</a>
-        </div>
-        <div id="alpr-demo" class="hidden flex flex-col items-center">
-          <form id="alpr-form" class="mb-4">
-            <input type="file" id="alpr-image" accept="image/*" class="mb-2" required />
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Predict</button>
-          </form>
-          <img id="alpr-result" class="max-w-full" />
+        <h1 class="text-5xl font-bold mb-10 text-center title">Projects</h1>
+        <div class="project-cards">
+          <a href="alpr.html" class="project-card">ALPR</a>
+          <a href="https://huggingface.co/spaces/tungedng2710/TonAI-OCR" target="_blank" class="project-card">OCR Document</a>
         </div>
       </div>
     </div>

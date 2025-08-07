@@ -6,10 +6,6 @@
     const trainingPage = document.getElementById('training-page');
     const projectsPage = document.getElementById('projects-page');
     const startBtn = document.getElementById('start-btn');
-    const alprBtn = document.getElementById('alpr-btn');
-    const alprDemo = document.getElementById('alpr-demo');
-    const alprForm = document.getElementById('alpr-form');
-    const alprResult = document.getElementById('alpr-result');
 
     function handleRouteChange() {
       const hash = window.location.hash;
@@ -27,8 +23,6 @@
         homeLink.classList.remove('active');
         trainingLink.classList.remove('active');
         projectsLink.classList.add('active');
-        alprDemo.classList.add('hidden');
-        alprResult.src = '';
       } else {
         homePage.style.display = 'flex';
         trainingPage.style.display = 'none';
@@ -45,21 +39,6 @@
 
     startBtn.addEventListener('click', () => {
       window.location.hash = '#/training';
-    });
-
-    alprBtn.addEventListener('click', () => {
-      alprDemo.classList.remove('hidden');
-    });
-
-    alprForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const file = document.getElementById('alpr-image').files[0];
-      if (!file) return;
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/alpr', { method: 'POST', body: formData });
-      const blob = await res.blob();
-      alprResult.src = URL.createObjectURL(blob);
     });
 
   async function loadDatasets() {
