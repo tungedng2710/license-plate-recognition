@@ -13,8 +13,11 @@
     const toggleBtn = document.getElementById('toggle-sidebar');
     const sidebar = document.querySelector('.sidebar');
 
+    toggleBtn.style.left = '210px';
+
     toggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('hidden');
+      const isHidden = sidebar.classList.toggle('hidden');
+      toggleBtn.style.left = isHidden ? '10px' : '210px';
     });
 
     function handleRouteChange() {
