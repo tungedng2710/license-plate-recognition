@@ -178,3 +178,34 @@ body {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
+#datasets-page {
+  background-color: #f3f4f6;
+  color: #333;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+#dataset-cards {
+  display: grid;
+  gap: 1rem;
+}
+
+.dataset-card {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+  padding: 20px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.dataset-card:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+#dataset-modal canvas {
+  max-width: 100%;
+}
+
