@@ -1,6 +1,5 @@
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from pathlib import Path
 import subprocess
@@ -15,12 +14,6 @@ REPO_ROOT = BASE_DIR.parent
 TRAIN_SCRIPT = REPO_ROOT / "detectors" / "yolov9" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
 
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-@app.get("/")
-def root():
-    return FileResponse(STATIC_DIR / "index.html")
-
 class TrainRequest(BaseModel):
     dataset: str
     batch: int
@@ -31,12 +24,12 @@ class TrainRequest(BaseModel):
 def list_datasets() -> list[str]:
     try:
         subprocess.run(
-            ["mc", "alias", "set", "local", "http://localhost:9000", "minioadmin", "minioadmin"],
+            ["/usr/local/bin/mc", "alias", "set", "local", "http://localhost:9000", "minioadmin", "minioadmin"],
             check=True,
             capture_output=True,
         )
         result = subprocess.run(
-            ["mc", "ls", "local/ivadatasets"],
+            ["/usr/local/bin/mc", "ls", "local/ivadatasets"],
             check=True,
             capture_output=True,
             text=True,
@@ -54,6 +47,10 @@ def list_datasets() -> list[str]:
 @app.get("/api/datasets")
 def get_datasets():
     return {"datasets": list_datasets()}
+
+@app.get("/api/datasets/{dataset_name}/samples")
+def get_dataset_samples(dataset_name: str):
+    return {"images": []}
 
 
 training_progress = 0
@@ -118,3 +115,5 @@ def run_training(req: TrainRequest):
 def train(req: TrainRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_training, req)
     return {"status": "started"}
+
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

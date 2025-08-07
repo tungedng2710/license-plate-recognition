@@ -1,108 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TonAI Computer Vision Hub</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-50 min-h-screen p-4">
-  <h1 class="text-3xl font-bold mb-6 text-center">TonAI Computer Vision Hub</h1>
-
-  <section>
-    <h2 class="text-xl font-semibold mb-2">Available Datasets</h2>
-    <div id="datasets" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-  </section>
-
-  <section class="mt-8">
-    <h2 class="text-xl font-semibold mb-2">Training Configuration</h2>
-    <form id="trainForm" class="space-y-4 max-w-md">
-      <div>
-        <label class="block text-sm font-medium">Dataset</label>
-        <input id="dataset" required class="mt-1 w-full border rounded p-2" />
-      </div>
-      <div class="flex gap-4">
-        <div class="flex-1">
-          <label class="block text-sm font-medium">Batch Size</label>
-          <input type="number" id="batch" value="16" class="mt-1 w-full border rounded p-2" />
-        </div>
-        <div class="flex-1">
-          <label class="block text-sm font-medium">Image Size</label>
-          <input type="number" id="img" value="640" class="mt-1 w-full border rounded p-2" />
-        </div>
-      </div>
-      <div class="flex gap-4">
-        <div class="flex-1">
-          <label class="block text-sm font-medium">Model</label>
-          <select id="model" class="mt-1 w-full border rounded p-2">
-            <option value="m">yolov9-m</option>
-            <option value="c">yolov9-c</option>
-            <option value="t">yolov9-t</option>
-          </select>
-        </div>
-        <div class="flex-1">
-          <label class="block text-sm font-medium">Epochs</label>
-          <input type="number" id="epochs" value="100" class="mt-1 w-full border rounded p-2" />
-        </div>
-      </div>
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Train</button>
-    </form>
-
-    <div id="progressSection" class="mt-6 hidden max-w-md">
-      <div class="w-full bg-gray-200 rounded-full h-4">
-        <div id="progressBar" class="bg-blue-600 h-4 rounded-full" style="width: 0%"></div>
-      </div>
-      <p id="progressText" class="text-sm mt-1 text-gray-700">0%</p>
+<body>
+  <div class="sidebar">
+        <div class="flex items-center justify-center my-4">
+      <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
+      <h1 class="text-2xl font-bold text-white">TonAI</h1>
     </div>
-  </section>
+    <a href="#/home" id="home-link" class="active">Home</a>
+    <a href="#/training" id="training-link">Training</a>
+  </div>
+  <div class="main-content">
+    <div id="home-page" class="flex justify-center items-center">
+      <div class="ambient-light"></div>
+      <div class="content">
+        <h1 class="title">TonAI Vision</h1>
+        <div class="buttons">
+          <button id="start-btn">Let's Start</button>
+          <a href="https://tungedng2710.github.io/" target="_blank"><button>About Us</button></a>
+        </div>
+      </div>
+    </div>
+    <div id="training-page" style="display: none;">
+      <h1 class="text-3xl font-bold mb-6 text-center">TonAI Computer Vision Hub</h1>
 
-  <script>
-    async function loadDatasets() {
-      const res = await fetch('/api/datasets');
-      const data = await res.json();
-      const container = document.getElementById('datasets');
-      container.innerHTML = '';
-      data.datasets.forEach(ds => {
-        const div = document.createElement('div');
-        div.className = 'p-4 border rounded shadow hover:bg-gray-100 cursor-pointer';
-        div.textContent = ds;
-        div.onclick = () => document.getElementById('dataset').value = ds;
-        container.appendChild(div);
-      });
-    }
-
-    let progressTimer;
-    async function pollProgress() {
-      const res = await fetch('/api/progress');
-      const data = await res.json();
-      document.getElementById('progressBar').style.width = data.progress + '%';
-      document.getElementById('progressText').innerText = data.progress + '%';
-      if (!data.running || data.progress >= 100) {
-        clearInterval(progressTimer);
-      }
-    }
-
-    document.getElementById('trainForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const payload = {
-        dataset: document.getElementById('dataset').value,
-        batch: parseInt(document.getElementById('batch').value),
-        img_size: parseInt(document.getElementById('img').value),
-        model: document.getElementById('model').value,
-        epochs: parseInt(document.getElementById('epochs').value)
-      };
-      await fetch('/api/train', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      document.getElementById('progressSection').classList.remove('hidden');
-      document.getElementById('progressBar').style.width = '0%';
-      document.getElementById('progressText').innerText = '0%';
-      progressTimer = setInterval(pollProgress, 1000);
-    });
-
-    window.onload = loadDatasets;
-  </script>
+      <section>
+        <h2 class="text-xl font-semibold mb-2">Available Datasets</h2>
+        <div id="datasets" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </section>
+    
+      <section class="mt-8">
+        <h2 class="text-xl font-semibold mb-2">Training Configuration</h2>
+        <form id="trainForm" class="space-y-4 max-w-md">
+          <div>
+            <label class="block text-sm font-medium">Dataset</label>
+            <input id="dataset" required class="mt-1 w-full border rounded p-2" />
+          </div>
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium">Batch Size</label>
+              <input type="number" id="batch" value="16" class="mt-1 w-full border rounded p-2" />
+            </div>
+            <div class="flex-1">
+              <label class="block text-sm font-medium">Image Size</label>
+              <input type="number" id="img" value="640" class="mt-1 w-full border rounded p-2" />
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium">Model</label>
+              <select id="model" class="mt-1 w-full border rounded p-2">
+                <option value="m">yolov9-m</option>
+                <option value="c">yolov9-c</option>
+                <option value="t">yolov9-t</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="block text-sm font-medium">Epochs</label>
+              <input type="number" id="epochs" value="100" class="mt-1 w-full border rounded p-2" />
+            </div>
+          </div>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Train</button>
+        </form>
+    
+        <div id="progressSection" class="mt-6 hidden max-w-md">
+          <div class="w-full bg-gray-200 rounded-full h-4">
+            <div id="progressBar" class="bg-blue-600 h-4 rounded-full" style="width: 0%"></div>
+          </div>
+          <p id="progressText" class="text-sm mt-1 text-gray-700">0%</p>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="script.js"></script>
 </body>
 </html>
-
