@@ -17,7 +17,7 @@ app = FastAPI()
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
-TRAIN_SCRIPT = REPO_ROOT / "detectors" / "yolov9" / "train.py"
+TRAIN_SCRIPT = BASE_DIR / "yolo_trainer" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
 
 with open(REPO_ROOT / "minio_config.json") as f:
@@ -120,25 +120,20 @@ def get_progress():
 def run_training(req: TrainRequest):
     dataset_yaml = REPO_ROOT / "datasets" / req.dataset / "data.yaml"
     subprocess.run(["bash", str(SYNC_SCRIPT), req.dataset], check=False)
-    cfg = REPO_ROOT / "detectors" / "yolov9" / "models" / "detect" / f"yolov9-{req.model}.yaml"
-    name = f"yolov9-{req.model}-{req.dataset}"
+    model_path = f"{req.model}.pt"
     cmd = [
         "python",
         str(TRAIN_SCRIPT),
-        "--batch",
-        str(req.batch),
-        "--img",
-        str(req.img_size),
-        "--cfg",
-        str(cfg),
-        "--name",
-        name,
+        "--model-path",
+        model_path,
+        "--data-path",
+        str(dataset_yaml),
         "--epochs",
         str(req.epochs),
-        "--data",
-        str(dataset_yaml),
-        "--weights",
-        "",
+        "--imgsz",
+        str(req.img_size),
+        "--batch",
+        str(req.batch),
     ]
     set_progress(0, True)
     proc = subprocess.Popen(
@@ -149,7 +144,7 @@ def run_training(req: TrainRequest):
         bufsize=1,
     )
     for line in proc.stdout:
-        match = re.search(r"(\d+)/(\d+)", line)
+        match = re.search(r"Epoch\s+(\d+)/(\d+)", line)
         if match:
             cur = int(match.group(1))
             total = int(match.group(2))
