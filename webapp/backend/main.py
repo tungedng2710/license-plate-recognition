@@ -12,6 +12,7 @@ import cv2
 import json
 from types import SimpleNamespace
 from test_alpr import ALPR
+from backend.yolo_trainer.train import YOLOTrainer
 
 app = FastAPI()
 
@@ -119,23 +120,25 @@ def get_progress():
         return {"progress": training_progress, "running": training_running}
 
 def run_training(req: TrainRequest):
-    dataset_yaml = REPO_ROOT / "datasets" / req.dataset / "data.yaml"
-    subprocess.run(["bash", str(SYNC_SCRIPT), req.dataset], check=True, cwd=REPO_ROOT)
-    model_path = f"{req.model}.pt"
-    cmd = [
-        "python",
-        str(TRAIN_SCRIPT),
-        "--model-path",
-        model_path,
-        "--data-path",
-        str(dataset_yaml),
-        "--epochs",
-        str(req.epochs),
-        "--imgsz",
-        str(req.img_size),
-        "--batch",
-        str(req.batch),
-    ]
+    dataset_yaml = REPO_ROOT / "data" / req.dataset / "data.yaml"
+    # subprocess.run(["bash", str(SYNC_SCRIPT), req.dataset], check=True, cwd=REPO_ROOT)
+    model_path = f"{BASE_DIR}/yolo_trainer/weights/{req.model}.pt"
+    trainer = YOLOTrainer(model_path=model_path,
+                          data_path=dataset_yaml)
+
+    set_progress(0, True)
+    trainer.train(
+        epochs=int(req.epochs),
+        imgsz=int(req.img_size),
+        batch=int(req.batch),
+        device="0",
+        pretrained=False,
+        resume=False,
+        cache=False,
+        cos_lr=False,
+        auto_set_name=True,
+    )
+    set_progress(100, False)
     env = os.environ.copy()
     env.update(
         {
@@ -146,24 +149,7 @@ def run_training(req: TrainRequest):
             "MINIO_PREFIX": "yolo_runs",
         }
     )
-    set_progress(0, True)
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-        env=env,
-        cwd=str(TRAIN_SCRIPT.parent),
-    )
-    for line in proc.stdout:
-        match = re.search(r"Epoch\s+(\d+)/(\d+)", line)
-        if match:
-            cur = int(match.group(1))
-            total = int(match.group(2))
-            set_progress(int(cur / total * 100))
-    proc.wait()
-    set_progress(100, False)
+    
 
 @app.post("/api/train")
 def train(req: TrainRequest, background_tasks: BackgroundTasks):
