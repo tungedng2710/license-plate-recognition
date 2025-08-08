@@ -63,9 +63,9 @@ body {
   flex-direction: column;
 }
 
-/* Collapsed state only hides text while keeping width */
+/* Collapsed state shows only icons but keeps enough space for images */
 .sidebar.collapsed {
-  width: 200px; /* keep original width */
+  width: 80px; /* enough width for logo and avatar */
 }
 
 .sidebar a {
