@@ -7,6 +7,7 @@ import subprocess
 import re
 import os
 from threading import Lock
+from multiprocessing import Process
 import numpy as np
 import cv2
 import json
@@ -119,18 +120,12 @@ def get_progress():
     with progress_lock:
         return {"progress": training_progress, "running": training_running}
 
-def run_training(req: TrainRequest):
-    dataset_yaml = REPO_ROOT / "data" / req.dataset / "data.yaml"
-    # subprocess.run(["bash", str(SYNC_SCRIPT), req.dataset], check=True, cwd=REPO_ROOT)
-    model_path = f"{BASE_DIR}/yolo_trainer/weights/{req.model}.pt"
-    trainer = YOLOTrainer(model_path=model_path,
-                          data_path=dataset_yaml)
-
-    set_progress(0, True)
+def _train_worker(model_path: str, dataset_yaml: Path, epochs: int, img_size: int, batch: int) -> None:
+    trainer = YOLOTrainer(model_path=str(model_path), data_path=str(dataset_yaml))
     trainer.train(
-        epochs=int(req.epochs),
-        imgsz=int(req.img_size),
-        batch=int(req.batch),
+        epochs=int(epochs),
+        imgsz=int(img_size),
+        batch=int(batch),
         device="0",
         pretrained=False,
         resume=False,
@@ -138,17 +133,20 @@ def run_training(req: TrainRequest):
         cos_lr=False,
         auto_set_name=True,
     )
-    set_progress(100, False)
-    env = os.environ.copy()
-    env.update(
-        {
-            "MINIO_ENDPOINT": MINIO_ENDPOINT.replace("http://", "").replace("https://", ""),
-            "MINIO_ACCESS_KEY": MINIO_ACCESS_KEY,
-            "MINIO_SECRET_KEY": MINIO_SECRET_KEY,
-            "MINIO_BUCKET": MINIO_BUCKET,
-            "MINIO_PREFIX": "yolo_runs",
-        }
+
+
+def run_training(req: TrainRequest):
+    dataset_yaml = REPO_ROOT / "data" / req.dataset / "data.yaml"
+    model_path = f"{BASE_DIR}/yolo_trainer/weights/{req.model}.pt"
+
+    set_progress(0, True)
+    p = Process(
+        target=_train_worker,
+        args=(model_path, dataset_yaml, req.epochs, req.img_size, req.batch),
     )
+    p.start()
+    p.join()
+    set_progress(100, False)
     
 
 @app.post("/api/train")
