@@ -58,10 +58,13 @@ body {
   flex-shrink: 0; /* Prevent sidebar from shrinking */
   position: relative;
   transition: width 0.3s;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.collapsed {
-  width: 60px;
+  width: 72px;
+  padding: 20px 0;
 }
 
 .sidebar a {
@@ -89,6 +92,14 @@ body {
 
 .sidebar a.active, .sidebar a:hover {
   background-color: #374151;
+}
+
+.user-settings {
+  margin-top: auto;
+}
+
+.sidebar.collapsed .user-settings {
+  justify-content: center;
 }
 
 .main-content {
