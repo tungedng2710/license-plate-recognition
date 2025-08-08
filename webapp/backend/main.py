@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from pathlib import Path
 import subprocess
 import re
+import os
 from threading import Lock
 import numpy as np
 import cv2
@@ -119,7 +120,7 @@ def get_progress():
 
 def run_training(req: TrainRequest):
     dataset_yaml = REPO_ROOT / "datasets" / req.dataset / "data.yaml"
-    subprocess.run(["bash", str(SYNC_SCRIPT), req.dataset], check=False)
+    subprocess.run(["bash", str(SYNC_SCRIPT), req.dataset], check=True, cwd=REPO_ROOT)
     model_path = f"{req.model}.pt"
     cmd = [
         "python",
@@ -135,6 +136,16 @@ def run_training(req: TrainRequest):
         "--batch",
         str(req.batch),
     ]
+    env = os.environ.copy()
+    env.update(
+        {
+            "MINIO_ENDPOINT": MINIO_ENDPOINT.replace("http://", "").replace("https://", ""),
+            "MINIO_ACCESS_KEY": MINIO_ACCESS_KEY,
+            "MINIO_SECRET_KEY": MINIO_SECRET_KEY,
+            "MINIO_BUCKET": MINIO_BUCKET,
+            "MINIO_PREFIX": "yolo_runs",
+        }
+    )
     set_progress(0, True)
     proc = subprocess.Popen(
         cmd,
@@ -142,6 +153,8 @@ def run_training(req: TrainRequest):
         stderr=subprocess.STDOUT,
         text=True,
         bufsize=1,
+        env=env,
+        cwd=str(TRAIN_SCRIPT.parent),
     )
     for line in proc.stdout:
         match = re.search(r"Epoch\s+(\d+)/(\d+)", line)
