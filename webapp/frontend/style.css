@@ -51,6 +51,7 @@ body {
   cursor: pointer;
 }
 
+/* Sidebar layout */
 .sidebar {
   width: 200px;
   background-color: #1f2937;
@@ -62,9 +63,9 @@ body {
   flex-direction: column;
 }
 
+/* Collapsed state only hides text while keeping width */
 .sidebar.collapsed {
-  width: 72px;
-  padding: 20px 0;
+  width: 200px; /* keep original width */
 }
 
 .sidebar a {
@@ -82,12 +83,14 @@ body {
   justify-content: center;
 }
 
-.sidebar.collapsed a span {
+.sidebar.collapsed .link-text,
+.sidebar.collapsed h1 {
   display: none;
 }
 
-.sidebar.collapsed h1 {
-  display: none;
+.sidebar.collapsed #logo-link img,
+.sidebar.collapsed .user-settings img {
+  margin-right: 0;
 }
 
 .sidebar a.active, .sidebar a:hover {
@@ -96,10 +99,6 @@ body {
 
 .user-settings {
   margin-top: auto;
-}
-
-.sidebar.collapsed .user-settings {
-  justify-content: center;
 }
 
 .main-content {
