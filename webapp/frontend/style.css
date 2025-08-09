@@ -12,15 +12,16 @@ html {
 body {
   font-family: 'Roboto', sans-serif;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  background-color: #111827;
   color: white;
-  height: 100%;
+  height: 100vh;
+  background-image: url('https://raw.githubusercontent.com/tungedng2710/tungedng2710.github.io/main/assets/images/heroimage.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .toggle-btn {
-  background-color: #1f2937;
+  background-color: transparent;
   color: white;
   border: none;
   padding: 10px;
@@ -30,11 +31,16 @@ body {
 
 .top-bar {
   height: 50px;
-  background-color: #1f2937;
+  background-color: rgba(31, 41, 55, 0.8);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
 }
 
 .layout {
@@ -51,21 +57,24 @@ body {
   cursor: pointer;
 }
 
-/* Sidebar layout */
 .sidebar {
   width: 200px;
-  background-color: #1f2937;
+  background-color: rgba(31, 41, 55, 0.8);
   padding: 20px;
   flex-shrink: 0; /* Prevent sidebar from shrinking */
-  position: relative;
+  position: fixed;
+  left: 0;
+  top: 50px;
+  bottom: 0;
   transition: width 0.3s;
   display: flex;
   flex-direction: column;
+  z-index: 10;
 }
 
 /* Collapsed state shows only icons but keeps enough space for images */
 .sidebar.collapsed {
-  width: 80px; /* enough width for logo and avatar */
+  width: 100px; /* enough width for logo and avatar */
 }
 
 .sidebar a {
@@ -106,6 +115,13 @@ body {
   padding: 20px;
   height: 100%;
   overflow-y: auto; /* Allow scrolling for content that overflows */
+  padding-top: 70px;
+  padding-left: 220px;
+  transition: padding-left 0.3s;
+}
+
+.sidebar.collapsed + .main-content {
+    padding-left: 100px;
 }
 
 
@@ -117,9 +133,6 @@ body {
   text-align: center;
   overflow: hidden;
   height: 100%;
-  background: linear-gradient(-45deg, #001f3f, #001633, #000d1f, #001633);
-  background-size: 400% 400%;
-  animation: ambientMove 20s ease infinite;
 }
 
 #home-page::before {
@@ -127,13 +140,10 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 200%;
-  height: 200%;
-  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj4KICA8cGF0aCBkPSJNMCAyMDAgUSAxNTAgMTAwIDMwMCAyMDAgVDYwMCAyMDAgVDkwMCAyMDAiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjE1KSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTAgMzAwIFEgMTUwIDIwMCAzMDAgMzAwIFQ2MDAgMzAwIFQ5MDAgMzAwIiBzdHJva2U9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+Cjwvc3ZnPgo=");
-  background-repeat: repeat;
-  background-size: 200% 100%;
-  animation: waveMove 10s linear infinite;
-  opacity: 0.2;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -174,26 +184,7 @@ body {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-@keyframes ambientMove {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
 
-@keyframes waveMove {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: -200px 0;
-  }
-}
 
 #training-page {
     background-color: #f3f4f6;
