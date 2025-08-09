@@ -9,38 +9,44 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <div class="sidebar">
+  <div class="top-bar">
     <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-left"></i></button>
-    <a href="index.html#/home" id="logo-link" class="flex items-center my-4">
-      <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
-      <h1 class="text-2xl font-bold text-white">TonAI</h1>
-    </a>
-    <a href="index.html#/home" id="home-link"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
-    <a href="index.html#/training" id="training-link"><i class="fas fa-chalkboard-teacher"></i><span class="link-text">Training</span></a>
-    <a href="index.html#/projects" id="projects-link" class="active"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
-    <a href="#/settings" class="user-settings"><img src="https://github.com/tungedng2710/tungedng2710.github.io/blob/main/assets/images/logo.png?raw=true" alt="User Avatar" class="h-8 w-8 rounded-full mr-2"><span class="link-text">Edward</span></a>
+    <button id="logout-btn" class="login-btn">Logout</button>
   </div>
-  <div class="main-content">
-    <h1 class="text-5xl font-bold mb-10 text-center title">License Plate Recognition</h1>
-    <div id="alpr-demo" class="flex flex-col items-center">
-      <form id="alpr-form" class="mb-4">
-        <input type="file" id="alpr-image" accept="image/*" class="mb-2" required />
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Predict</button>
-      </form>
-      <div class="image-container flex">
-        <div class="image-box">
-          <h2 class="text-2xl font-bold mb-4 text-center">Uploaded Image</h2>
-          <img id="alpr-uploaded-image" class="max-w-full" />
-        </div>
-        <div class="image-box">
-          <h2 class="text-2xl font-bold mb-4 text-center">Result Image</h2>
-          <img id="alpr-result" class="max-w-full" />
+  <div class="layout">
+    <div class="sidebar">
+      <a href="index.html#/home" id="logo-link" class="flex items-center my-4">
+        <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
+        <h1 class="text-2xl font-bold text-white">TonAI</h1>
+      </a>
+      <a href="index.html#/home" id="home-link"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
+      <a href="index.html#/training" id="training-link"><i class="fas fa-chalkboard-teacher"></i><span class="link-text">Training</span></a>
+      <a href="index.html#/projects" id="projects-link" class="active"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
+      <a href="#/settings" class="user-settings"><img src="https://github.com/tungedng2710/tungedng2710.github.io/blob/main/assets/images/logo.png?raw=true" alt="User Avatar" class="h-8 w-8 rounded-full mr-2"><span class="link-text">Edward</span></a>
+    </div>
+    <div class="main-content">
+      <h1 class="text-5xl font-bold mb-10 text-center title">License Plate Recognition</h1>
+      <div id="alpr-demo" class="flex flex-col items-center">
+        <form id="alpr-form" class="mb-4">
+          <input type="file" id="alpr-image" accept="image/*" class="mb-2" required />
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Predict</button>
+        </form>
+        <div class="image-container flex">
+          <div class="image-box">
+            <h2 class="text-2xl font-bold mb-4 text-center">Uploaded Image</h2>
+            <img id="alpr-uploaded-image" class="max-w-full" />
+          </div>
+          <div class="image-box">
+            <h2 class="text-2xl font-bold mb-4 text-center">Result Image</h2>
+            <img id="alpr-result" class="max-w-full" />
+          </div>
         </div>
       </div>
     </div>
   </div>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="auth.js"></script>
+  <script src="sidebar.js"></script>
   <script src="alpr.js"></script>
 </body>
 </html>
