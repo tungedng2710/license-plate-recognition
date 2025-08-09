@@ -13,15 +13,6 @@
   const toggleBtn = document.getElementById('toggle-sidebar');
   const sidebar = document.querySelector('.sidebar');
 
-   VANTA.WAVES({
-     el: '#home-page',
-     color: 0x001f3f,
-     shininess: 20,
-     waveHeight: 10,
-     waveSpeed: 0.5,
-     zoom: 0.8
-   });
-
     toggleBtn.addEventListener('click', () => {
       const isCollapsed = sidebar.classList.toggle('collapsed');
       toggleBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
