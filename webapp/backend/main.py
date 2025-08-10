@@ -11,6 +11,9 @@ from multiprocessing import Process
 import numpy as np
 import cv2
 import json
+import yaml
+import zipfile
+import shutil
 from types import SimpleNamespace
 from test_alpr import ALPR
 from backend.yolo_trainer.train import YOLOTrainer
@@ -92,14 +95,66 @@ def dataset_stats(dataset_name: str) -> dict:
             )
             count = len([line for line in result.stdout.splitlines() if line.strip()])
             stats[split] = count
+
+        # Retrieve class names from data.yaml if available
+        try:
+            yaml_res = subprocess.run(
+                ["/usr/local/bin/mc", "cat", f"local/{MINIO_BUCKET}/{dataset_name}/data.yaml"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            data_yaml = yaml.safe_load(yaml_res.stdout)
+            names = data_yaml.get("names", []) if isinstance(data_yaml, dict) else []
+            stats["classes"] = len(names)
+            stats["tags"] = names
+        except Exception:
+            stats["classes"] = 0
+            stats["tags"] = []
+
         return stats
     except Exception:
-        return {"train": 0, "val": 0, "test": 0}
+        return {"train": 0, "val": 0, "test": 0, "classes": 0, "tags": []}
 
 
 @app.get("/api/datasets/{dataset_name}/stats")
 def get_dataset_stats(dataset_name: str):
     return dataset_stats(dataset_name)
+
+
+@app.post("/api/datasets/upload")
+async def upload_dataset(file: UploadFile = File(...)):
+    tmp_dir = Path("/tmp")
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp_zip = tmp_dir / file.filename
+    with open(tmp_zip, "wb") as f:
+        f.write(await file.read())
+
+    extract_dir = tmp_dir / Path(file.filename).stem
+    with zipfile.ZipFile(tmp_zip, "r") as z:
+        z.extractall(extract_dir)
+
+    try:
+        subprocess.run(
+            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["/usr/local/bin/mc", "cp", "--recursive", str(extract_dir), f"local/{MINIO_BUCKET}/{extract_dir.name}"],
+            check=True,
+            capture_output=True,
+        )
+    except Exception:
+        pass
+    finally:
+        shutil.rmtree(extract_dir, ignore_errors=True)
+        try:
+            tmp_zip.unlink()
+        except Exception:
+            pass
+
+    return {"status": "uploaded"}
 
 
 training_progress = 0

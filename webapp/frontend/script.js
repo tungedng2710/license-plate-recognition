@@ -8,6 +8,8 @@
     const datasetsPage = document.getElementById('datasets-page');
     const projectsPage = document.getElementById('projects-page');
     const datasetModal = document.getElementById('dataset-modal');
+    const uploadBtn = document.getElementById('upload-btn');
+    const uploadInput = document.getElementById('dataset-upload');
   const modalClose = document.getElementById('modal-close');
   const startBtn = document.getElementById('start-btn');
   const toggleBtn = document.getElementById('toggle-sidebar');
@@ -16,6 +18,20 @@
     toggleBtn.addEventListener('click', () => {
       const isCollapsed = sidebar.classList.toggle('collapsed');
       toggleBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
+    });
+
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      await fetch('/api/datasets/upload', {
+        method: 'POST',
+        body: formData
+      });
+      loadDatasetCards();
+      loadDatasets();
     });
 
     function handleRouteChange() {
@@ -95,13 +111,24 @@
     const container = document.getElementById('dataset-cards');
     container.innerHTML = '';
 
-    data.datasets.forEach(ds => {
+    for (const ds of data.datasets) {
+      const statsRes = await fetch(`/api/datasets/${ds}/stats`);
+      const stats = await statsRes.json();
+
       const div = document.createElement('div');
       div.className = 'dataset-card';
-      div.textContent = ds;
+      div.innerHTML = `
+        <img src="https://picsum.photos/seed/${ds}/300/150" alt="${ds} thumbnail" />
+        <div class="p-4">
+          <h3 class="text-lg font-bold mb-2">${ds}</h3>
+          <p class="text-sm mb-1">Classes: ${stats.classes}</p>
+          <p class="text-sm mb-2">Train: ${stats.train}, Val: ${stats.val}, Test: ${stats.test}</p>
+          <div class="tags">${(stats.tags || []).map(t => '<span>' + t + '</span>').join('')}</div>
+        </div>
+      `;
       div.onclick = () => showDatasetStats(ds);
       container.appendChild(div);
-    });
+    }
   }
 
   let chart;
