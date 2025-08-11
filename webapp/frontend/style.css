@@ -1,0 +1,305 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+html {
+  box-sizing: border-box;
+  height: 100%;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  color: white;
+  height: 100vh;
+  background-color: #1f2937;
+}
+
+body.home-bg {
+  background-image: url('https://raw.githubusercontent.com/tungedng2710/tungedng2710.github.io/main/assets/images/heroimage.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.toggle-btn {
+  background-color: transparent;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.top-bar {
+  height: 50px;
+  background-color: rgba(31, 41, 55, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+}
+
+.login-btn {
+  background-color: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.sidebar {
+  width: 200px;
+  background-color: rgba(31, 41, 55, 0.8);
+  padding: 20px;
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+  position: fixed;
+  left: 0;
+  top: 50px;
+  bottom: 0;
+  transition: width 0.3s;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+/* Collapsed state shows only icons but keeps enough space for images */
+.sidebar.collapsed {
+  width: 100px; /* enough width for logo and avatar */
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  color: white;
+  padding: 10px;
+  text-decoration: none;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.sidebar.collapsed a {
+  justify-content: center;
+}
+
+.sidebar.collapsed .link-text,
+.sidebar.collapsed h1 {
+  display: none;
+}
+
+.sidebar.collapsed #logo-link img,
+.sidebar.collapsed .user-settings img {
+  margin-right: 0;
+}
+
+.sidebar a.active, .sidebar a:hover {
+  background-color: #374151;
+}
+
+.user-settings {
+  margin-top: auto;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto; /* Allow scrolling for content that overflows */
+  padding-top: 70px;
+  padding-left: 220px;
+  transition: padding-left 0.3s;
+}
+
+.sidebar.collapsed + .main-content {
+    padding-left: 100px;
+}
+
+
+#home-page {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+  height: 100%;
+}
+
+#home-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+#home-page .content {
+  z-index: 1;
+}
+
+#home-page .title {
+  font-size: 6rem;
+  font-weight: bold;
+  color: white;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  transition: text-shadow 0.3s, transform 0.3s;
+}
+
+#home-page .title:hover {
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.7);
+  transform: scale(1.05);
+}
+
+#home-page .buttons {
+  margin-top: 20px;
+}
+
+#home-page button {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid white;
+  color: white;
+  padding: 10px 20px;
+  margin: 0 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#home-page button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+
+
+#training-page {
+    padding: 20px;
+}
+
+#datasets div img {
+  object-fit: cover;
+  height: 100px; /* Or any other fixed height */
+}
+
+#datasets div {
+    background-color: white;
+    color: #333;
+}
+
+#trainForm {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    color: #333;
+}
+
+#progressSection {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    color: #333;
+}
+
+#projects-page .title {
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  margin-bottom: 40px;
+}
+
+#projects-page .project-cards {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
+
+#projects-page .project-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 250px;
+  height: 180px;
+  background-color: #1f2937;
+  color: white;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+}
+
+#projects-page .project-card:hover {
+  background-color: #374151;
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+#datasets-page {
+    padding: 20px;
+}
+
+#dataset-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dataset-card {
+  background: #fff;
+  color: #333;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.dataset-card:hover {
+  transform: translateY(-4px);
+}
+
+.dataset-card img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.dataset-card .tags {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.dataset-card .tags span {
+  background: #e5e7eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+#dataset-modal canvas {
+  max-width: 100%;
+}

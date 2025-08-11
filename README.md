@@ -67,3 +67,14 @@ As regards streaming control, from keyboard,
 - ```Q```: exit the running window
 - ```R```: to reset object tracker (equivalent to re-count number of entire vehicles from that time)
 - ```P```: pause video
+
+### TonAI Computer Vision Hub
+Launch a modern interface for starting YOLOv9 training with live progress updates:
+
+```bash
+cd webapp
+pip install -r requirements.txt
+uvicorn backend.main:app --reload
+```
+
+Open `http://localhost:8000` in your browser to configure the run, select datasets, and watch training progress.
