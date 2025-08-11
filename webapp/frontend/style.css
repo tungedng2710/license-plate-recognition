@@ -14,6 +14,10 @@ body {
   margin: 0;
   color: white;
   height: 100vh;
+  background-color: #1f2937;
+}
+
+body.home-bg {
   background-image: url('https://raw.githubusercontent.com/tungedng2710/tungedng2710.github.io/main/assets/images/heroimage.png');
   background-size: cover;
   background-position: center;
@@ -187,10 +191,7 @@ body {
 
 
 #training-page {
-    background-color: #f3f4f6;
-    color: #333;
     padding: 20px;
-    border-radius: 8px;
 }
 
 #datasets div img {
@@ -200,18 +201,21 @@ body {
 
 #datasets div {
     background-color: white;
+    color: #333;
 }
 
 #trainForm {
     background-color: white;
     padding: 20px;
     border-radius: 8px;
+    color: #333;
 }
 
 #progressSection {
     background-color: white;
     padding: 20px;
     border-radius: 8px;
+    color: #333;
 }
 
 #projects-page .title {
@@ -253,10 +257,7 @@ body {
 }
 
 #datasets-page {
-  background-color: #f3f4f6;
-  color: #333;
-  padding: 20px;
-  border-radius: 8px;
+    padding: 20px;
 }
 
 #dataset-cards {

@@ -7,13 +7,13 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="home-bg">
   <div class="top-bar">
-    <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-left"></i></button>
+    <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-right"></i></button>
     <button id="logout-btn" class="login-btn">Logout</button>
   </div>
   <div class="layout">
-    <div class="sidebar">
+    <div class="sidebar collapsed">
       <a href="#/home" id="logo-link" class="flex items-center my-4">
         <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
         <h1 class="text-2xl font-bold text-white">TonAI</h1>
@@ -89,10 +89,12 @@
         </section>
       </div>
       <div id="datasets-page" style="display: none;">
-        <h1 class="text-3xl font-bold mb-6 text-center">Datasets</h1>
-        <div class="text-right mb-4">
-          <input type="file" id="dataset-upload" accept=".zip" class="hidden" />
-          <button id="upload-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-3xl font-bold">Datasets</h1>
+          <div>
+            <input type="file" id="dataset-upload" accept=".zip" class="hidden" />
+            <button id="upload-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
+          </div>
         </div>
         <div id="dataset-cards"></div>
       </div>
