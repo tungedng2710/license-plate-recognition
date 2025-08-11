@@ -12,8 +12,9 @@
     const uploadInput = document.getElementById('dataset-upload');
   const modalClose = document.getElementById('modal-close');
   const startBtn = document.getElementById('start-btn');
-  const toggleBtn = document.getElementById('toggle-sidebar');
-  const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    const sidebar = document.querySelector('.sidebar');
+    const body = document.body;
 
     toggleBtn.addEventListener('click', () => {
       const isCollapsed = sidebar.classList.toggle('collapsed');
@@ -36,6 +37,7 @@
 
     function handleRouteChange() {
       const hash = window.location.hash;
+      body.classList.remove('home-bg');
       if (hash === '#/training') {
         homePage.style.display = 'none';
         trainingPage.style.display = 'block';
@@ -73,6 +75,7 @@
         trainingLink.classList.remove('active');
         datasetsLink.classList.remove('active');
         projectsLink.classList.remove('active');
+        body.classList.add('home-bg');
       }
     }
 
