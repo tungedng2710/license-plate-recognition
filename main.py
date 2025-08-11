@@ -30,13 +30,13 @@ def get_args():
         default="test_urban.mp4",
         help="path to video, 0 for webcam")
     parser.add_argument("--vehicle_weight", type=str,
-                        default="weights/vehicle_yolov8n_1088_v2.pt",
+                        default="weights/vehicle_yolov8s_640.pt",
                         help="path to the yolov8 weight of vehicle detector")
     parser.add_argument("--plate_weight", type=str,
-                        default="weights/plate_yolov8n_9k.pt",
+                        default="weights/plate_yolov8n_320_2024.pt",
                         help="path to the yolov8 weight of plate detector")
     parser.add_argument("--dsort_weight", type=str,
-                        default="weights/deepsort/deepsort.onnx",
+                        default="weights/deepsort/ckpt.t7",
                         help="path to the weight of DeepSORT tracker")
     parser.add_argument(
         "--ocr_weight",
@@ -53,7 +53,7 @@ def get_args():
     parser.add_argument(
         "--ocr_thres",
         type=float,
-        default=0.95,
+        default=0.9,
         help="threshold for ocr model")
     parser.add_argument(
         "--deepsort",
@@ -169,6 +169,9 @@ class TrafficCam():
         fps = cap.get(cv2.CAP_PROP_FPS)
         w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total_frames = 0
+        if ".mp4" in self.video:
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         if self.save:
             log_path = self.save_dir
             frames_path = os.path.join(log_path, "frames")
@@ -187,6 +190,7 @@ class TrafficCam():
         thresh_h = int(h / 5)  # Limit detection zone
         print("Traffic Cam is ready!")
         while cap.isOpened():
+            print(f"Processing frame {num_frame}/{total_frames}...", end="\r")
             t0_fps = gettime()
             ret, frame = cap.read()
             num_frame += 1
@@ -196,7 +200,7 @@ class TrafficCam():
             if frame is not None:
                 displayed_frame = frame.copy()
             else:
-                continue
+                break
             if ret:
                 # cv2.line(displayed_frame, (0, thresh_h), (w, thresh_h), self.color["blue"], 2)
                 """
@@ -374,19 +378,19 @@ class TrafficCam():
                         captured += 1
                 if self.stream:
                     cv2.imshow(title, displayed_frame)
-                key = cv2.waitKey(1)
-                if key == ord('q'):  # Quit video
-                    break
-                if key == ord('r'):  # Reset tracking
-                    self.init_tracker()
-                if key == ord('p'):  # Pause video
-                    cv2.waitKey(-1)
+                    key = cv2.waitKey(1)
+                    if key == ord('q'):  # Quit video
+                        break
+                    if key == ord('r'):  # Reset tracking
+                        self.init_tracker()
+                    if key == ord('p'):  # Pause video
+                        cv2.waitKey(-1)
                 del displayed_frame
                 del frame
         cap.release()
         if self.save:
             vid_writer.release()
-        cv2.destroyAllWindows()
+        # cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
