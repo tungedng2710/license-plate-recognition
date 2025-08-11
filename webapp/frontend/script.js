@@ -118,7 +118,7 @@
       const div = document.createElement('div');
       div.className = 'dataset-card';
       div.innerHTML = `
-        <img src="https://picsum.photos/seed/${ds}/300/150" alt="${ds} thumbnail" />
+        <img src="/api/datasets/${ds}/thumbnail" alt="${ds} thumbnail" />
         <div class="p-4">
           <h3 class="text-lg font-bold mb-2">${ds}</h3>
           <p class="text-sm mb-1">Classes: ${stats.classes}</p>

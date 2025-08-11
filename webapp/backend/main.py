@@ -122,6 +122,40 @@ def get_dataset_stats(dataset_name: str):
     return dataset_stats(dataset_name)
 
 
+@app.get("/api/datasets/{dataset_name}/thumbnail")
+def get_dataset_thumbnail(dataset_name: str):
+    try:
+        subprocess.run(
+            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
+            check=True,
+            capture_output=True,
+        )
+        ls_res = subprocess.run(
+            ["/usr/local/bin/mc", "ls", f"local/{MINIO_BUCKET}/{dataset_name}/train/images"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        first_file = None
+        for line in ls_res.stdout.splitlines():
+            parts = line.strip().split()
+            if parts:
+                first_file = parts[-1]
+                break
+        if not first_file:
+            return Response(status_code=404)
+        cat_res = subprocess.run(
+            ["/usr/local/bin/mc", "cat", f"local/{MINIO_BUCKET}/{dataset_name}/train/images/{first_file}"],
+            check=True,
+            capture_output=True,
+        )
+        suffix = Path(first_file).suffix.lower()
+        media_type = "image/png" if suffix == ".png" else "image/jpeg"
+        return Response(content=cat_res.stdout, media_type=media_type)
+    except Exception:
+        return Response(status_code=404)
+
+
 @app.post("/api/datasets/upload")
 async def upload_dataset(file: UploadFile = File(...)):
     tmp_dir = Path("/tmp")
