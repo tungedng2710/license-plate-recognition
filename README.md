@@ -13,6 +13,7 @@
 * 3.10 >= Python version >= 3.7
 
 ## Overview
+**Update 11st August 2025**: PPOCRv5 and an Web App (beta version) for testing
 **Update 5th July 2024**: PPOCRv4 is added. Text detection is also added to improve performance for plates in different perspectives
 **Update 1st Nov 2023**: DeepSORT is replaced by SORT to speed up the flow. In addition, TensorRT inference and code for model conversion have been added.
 
@@ -68,7 +69,12 @@ As regards streaming control, from keyboard,
 - ```R```: to reset object tracker (equivalent to re-count number of entire vehicles from that time)
 - ```P```: pause video
 
-### TonAI Computer Vision Hub
+For quick testing
+```bat
+python test_alpr.py --input_source <path to your image/video>
+```
+
+## TonAI Computer Vision Hub
 Launch a modern interface for starting YOLOv9 training with live progress updates:
 
 ```bash
