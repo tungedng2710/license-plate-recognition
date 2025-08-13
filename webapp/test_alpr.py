@@ -10,6 +10,8 @@ from utils.utils import BGR_COLORS, check_legit_plate, check_image_size, draw_te
 
 def get_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--input_source", type=str, default="data/test_samples/xe4.jpg",
+                        help="path to the image for testing")
     parser.add_argument("--vehicle_weight", type=str,
                         default="weights/vehicle_yolov8s_640.pt ",
                         help="path to the yolov8 weight of vehicle detector")
@@ -135,26 +137,30 @@ def set_hd_resolution(image):
     return image
 
 
+def input_source_is_video(opts):
+    return opts.input_source.endswith(('.mp4', '.avi', '.mov'))
+
+
 if __name__ == '__main__':
     opts = get_args()
     lp_recognizer = ALPR(opts)
-    image = cv2.imread("data/test_samples/images/xe4.jpg")
-    result = lp_recognizer(image)
-    cv2.imwrite("result.jpg", result)
+    if not input_source_is_video(opts):
+        image = cv2.imread(opts.input_source)
+        result = lp_recognizer(image)
+        cv2.imwrite("data/result.jpg", result)
+    else:
+        cap = cv2.VideoCapture(opts.input_source)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                lp_recognizer.vehicles = []
+                image = frame.copy()
+                image = lp_recognizer(image)
+                cv2.imshow("Test ALPR", set_hd_resolution(image))
+                del image
 
-    # cap = cv2.VideoCapture("data/test_samples/haiphong2k_2506.mp4")
-    # while cap.isOpened():
-    #     ret, frame = cap.read()
-    #     if ret:
-    #         lp_recognizer.vehicles = []
-    #         image = frame.copy()
-    #         image = lp_recognizer(image)
-    #         # cv2.imwrite("result.jpg", image)
-    #         cv2.imshow("Test ALPR", set_hd_resolution(image))
-    #         del image
-
-    #     key = cv2.waitKey(1)
-    #     if key == ord('q'): # Quit video
-    #         break
-    # cap.release()
-    # cv2.destroyAllWindows()
+            key = cv2.waitKey(1)
+            if key == ord('q'): # Quit video
+                break
+        cap.release()
+        cv2.destroyAllWindows()
