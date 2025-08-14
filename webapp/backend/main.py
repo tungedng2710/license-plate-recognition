@@ -25,6 +25,7 @@ STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
 TRAIN_SCRIPT = BASE_DIR / "yolo_trainer" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
+RTSP_FILE = BASE_DIR / "rtsp_url.json"
 
 with open(REPO_ROOT / "minio_config.json") as f:
     MINIO_CFG = json.load(f)
@@ -43,6 +44,15 @@ opts = SimpleNamespace(
     device="cpu",
 )
 alpr_model = ALPR(opts)
+
+
+@app.get("/api/rtsp_urls")
+def get_rtsp_urls():
+    try:
+        with open(RTSP_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 class TrainRequest(BaseModel):
     dataset: str
