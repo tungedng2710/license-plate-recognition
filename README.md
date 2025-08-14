@@ -1,6 +1,12 @@
 # TrafficCam: Traffic surveillance
+### Demo pipeline result
 ![Demo](data/demo.jpg)
+### Web App (beta)
+![Demo](data/demo2.png)
+
 ## ToDo
+- [ ] MLOPs Platform
+- [x] PPOCRv5 (Detection + Orientation + Recognition)
 - [x] TensorRT Inference
 - [x] ONNX Models
 - [x] PPOCRv4 (Detection + Recognition)

@@ -81,6 +81,8 @@ class ALPR:
 
     def extract_license_plate(self):
         input_batch = [vehicle.vehicle_image for vehicle in self.vehicles]
+        if len(input_batch) == 0:
+            return
         plate_detections = self.plate_detector(
             input_batch,
             verbose=False,

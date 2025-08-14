@@ -1,6 +1,6 @@
 from fastapi import FastAPI, BackgroundTasks, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from pathlib import Path
 import subprocess
@@ -25,6 +25,7 @@ STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
 TRAIN_SCRIPT = BASE_DIR / "yolo_trainer" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
+RTSP_FILE = BASE_DIR / "rtsp_url.json"
 
 with open(REPO_ROOT / "minio_config.json") as f:
     MINIO_CFG = json.load(f)
@@ -43,6 +44,15 @@ opts = SimpleNamespace(
     device="cpu",
 )
 alpr_model = ALPR(opts)
+
+
+@app.get("/api/rtsp_urls")
+def get_rtsp_urls():
+    try:
+        with open(RTSP_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 class TrainRequest(BaseModel):
     dataset: str
@@ -252,5 +262,27 @@ async def alpr(file: UploadFile = File(...)):
     result = alpr_model(img)
     _, buffer = cv2.imencode('.jpg', result)
     return Response(content=buffer.tobytes(), media_type="image/jpeg")
+
+
+@app.get("/api/alpr/stream")
+def alpr_stream(url: str):
+    def generate():
+        cap = cv2.VideoCapture(url)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            alpr_model.vehicles = []
+            frame = alpr_model(frame)
+            _, buffer = cv2.imencode('.jpg', frame)
+            yield (
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+            )
+        cap.release()
+
+    return StreamingResponse(
+        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
