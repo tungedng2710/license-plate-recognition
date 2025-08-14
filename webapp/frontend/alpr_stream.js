@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const startBtn = document.getElementById('start-stream');
   const pauseBtn = document.getElementById('pause-stream');
   const stopBtn = document.getElementById('stop-stream');
-  const streamVideo = document.getElementById('alpr-stream');
+  const streamImg = document.getElementById('alpr-stream');
+  let currentSrc = '';
 
   // load camera list
   try {
@@ -22,26 +23,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   startBtn.addEventListener('click', () => {
     const url = cameraSelect.value;
     if (!url) return;
-    streamVideo.src = `/api/alpr/stream?url=${encodeURIComponent(url)}`;
-    streamVideo.play();
+    currentSrc = `/api/alpr/stream?url=${encodeURIComponent(url)}`;
+    streamImg.src = currentSrc;
     pauseBtn.textContent = 'Pause';
   });
 
   pauseBtn.addEventListener('click', () => {
-    if (!streamVideo.src) return;
-    if (streamVideo.paused) {
-      streamVideo.play();
-      pauseBtn.textContent = 'Pause';
-    } else {
-      streamVideo.pause();
+    if (!streamImg.src) return;
+    if (pauseBtn.textContent === 'Pause') {
+      streamImg.removeAttribute('src');
       pauseBtn.textContent = 'Resume';
+    } else {
+      streamImg.src = currentSrc;
+      pauseBtn.textContent = 'Pause';
     }
   });
 
   stopBtn.addEventListener('click', () => {
-    streamVideo.pause();
-    streamVideo.removeAttribute('src');
-    streamVideo.load();
+    streamImg.removeAttribute('src');
+    currentSrc = '';
     pauseBtn.textContent = 'Pause';
   });
 });
