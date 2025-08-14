@@ -21,7 +21,9 @@
       </a>
       <a href="index.html#/home" id="home-link"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
       <a href="index.html#/training" id="training-link"><i class="fas fa-chalkboard-teacher"></i><span class="link-text">Training</span></a>
+      <a href="index.html#/datasets" id="datasets-link"><i class="fas fa-database"></i><span class="link-text">Datasets</span></a>
       <a href="index.html#/projects" id="projects-link" class="active"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
+      <a href="https://github.com/tungedng2710/license-plate-recognition" target="_blank"><i class="fab fa-github"></i><span class="link-text">GitHub</span></a>
       <a href="#/settings" class="user-settings"><img src="https://github.com/tungedng2710/tungedng2710.github.io/blob/main/assets/images/logo.png?raw=true" alt="User Avatar" class="h-8 w-8 rounded-full mr-2"><span class="link-text">Edward</span></a>
     </div>
     <div class="main-content">
@@ -40,6 +42,14 @@
             <h2 class="text-2xl font-bold mb-4 text-center">Result Image</h2>
             <img id="alpr-result" class="max-w-full" />
           </div>
+        </div>
+        <form id="alpr-stream-form" class="mb-4 mt-6 flex">
+          <input type="text" id="alpr-rtsp" placeholder="RTSP URL" class="mb-2 p-2 rounded flex-1" required />
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2">Stream</button>
+        </form>
+        <div class="image-box" id="stream-box">
+          <h2 class="text-2xl font-bold mb-4 text-center">Video Stream</h2>
+          <img id="alpr-stream" class="max-w-full" />
         </div>
       </div>
     </div>

@@ -3,13 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const alprResult = document.getElementById('alpr-result');
   const alprImageInput = document.getElementById('alpr-image');
   const alprUploadedImage = document.getElementById('alpr-uploaded-image');
-  const toggleBtn = document.getElementById('toggle-sidebar');
-  const sidebar = document.querySelector('.sidebar');
-
-  toggleBtn.addEventListener('click', () => {
-    const isCollapsed = sidebar.classList.toggle('collapsed');
-    toggleBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
-  });
+  const streamForm = document.getElementById('alpr-stream-form');
+  const streamUrl = document.getElementById('alpr-rtsp');
+  const streamImage = document.getElementById('alpr-stream');
 
   alprImageInput.addEventListener('change', () => {
     const file = alprImageInput.files[0];
@@ -31,5 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const res = await fetch('/api/alpr', { method: 'POST', body: formData });
     const blob = await res.blob();
     alprResult.src = URL.createObjectURL(blob);
+  });
+
+  streamForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const url = streamUrl.value.trim();
+    if (!url) return;
+    streamImage.src = `/api/alpr/stream?url=${encodeURIComponent(url)}`;
   });
 });
