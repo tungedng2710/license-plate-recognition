@@ -1,6 +1,6 @@
 from fastapi import FastAPI, BackgroundTasks, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from pathlib import Path
 import subprocess
@@ -252,5 +252,27 @@ async def alpr(file: UploadFile = File(...)):
     result = alpr_model(img)
     _, buffer = cv2.imencode('.jpg', result)
     return Response(content=buffer.tobytes(), media_type="image/jpeg")
+
+
+@app.get("/api/alpr/stream")
+def alpr_stream(url: str):
+    def generate():
+        cap = cv2.VideoCapture(url)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            alpr_model.vehicles = []
+            frame = alpr_model(frame)
+            _, buffer = cv2.imencode('.jpg', frame)
+            yield (
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+            )
+        cap.release()
+
+    return StreamingResponse(
+        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

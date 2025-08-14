@@ -28,6 +28,28 @@
   background-color: #1d4ed8;
 }
 
+#alpr-stream-form input[type="text"] {
+  background-color: #374151;
+  color: white;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+#alpr-stream-form button {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#alpr-stream-form button:hover {
+  background-color: #1d4ed8;
+}
+
 .image-container {
     display: flex;
     justify-content: space-around;
@@ -42,7 +64,17 @@
     background-color: #1f2937;
 }
 
+#stream-box {
+  width: 90%;
+}
+
 #alpr-uploaded-image, #alpr-result {
+  margin-top: 20px;
+  border: 2px solid #374151;
+  border-radius: 8px;
+}
+
+#alpr-stream {
   margin-top: 20px;
   border: 2px solid #374151;
   border-radius: 8px;
