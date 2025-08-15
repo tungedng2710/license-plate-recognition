@@ -26,6 +26,7 @@ REPO_ROOT = BASE_DIR.parent
 TRAIN_SCRIPT = BASE_DIR / "yolo_trainer" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
 RTSP_FILE = BASE_DIR / "rtsp_url.json"
+HD_SIZE = (1280, 720)
 
 with open(REPO_ROOT / "minio_config.json") as f:
     MINIO_CFG = json.load(f)
@@ -272,6 +273,7 @@ def video_stream(url: str):
             ret, frame = cap.read()
             if not ret:
                 break
+            frame = cv2.resize(frame, HD_SIZE)
             _, buffer = cv2.imencode('.jpg', frame)
             yield (
                 b"--frame\r\n"
@@ -294,6 +296,7 @@ def alpr_stream(url: str):
                 break
             alpr_model.vehicles = []
             frame = alpr_model(frame)
+            frame = cv2.resize(frame, HD_SIZE)
             _, buffer = cv2.imencode('.jpg', frame)
             yield (
                 b"--frame\r\n"
