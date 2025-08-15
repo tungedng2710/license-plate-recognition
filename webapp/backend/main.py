@@ -264,6 +264,26 @@ async def alpr(file: UploadFile = File(...)):
     return Response(content=buffer.tobytes(), media_type="image/jpeg")
 
 
+@app.get("/api/video/stream")
+def video_stream(url: str):
+    def generate():
+        cap = cv2.VideoCapture(url)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            _, buffer = cv2.imencode('.jpg', frame)
+            yield (
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+            )
+        cap.release()
+
+    return StreamingResponse(
+        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
+    )
+
+
 @app.get("/api/alpr/stream")
 def alpr_stream(url: str):
     def generate():
