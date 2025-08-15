@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Management</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="alpr.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="top-bar">
+    <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-right"></i></button>
+    <button id="logout-btn" class="login-btn">Logout</button>
+  </div>
+  <div class="layout">
+    <div class="sidebar collapsed">
+      <a href="index.html#/home" id="logo-link" class="flex items-center my-4">
+        <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
+        <h1 class="text-2xl font-bold text-white">TonAI</h1>
+      </a>
+      <a href="index.html#/home" id="home-link"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
+      <a href="index.html#/training" id="training-link"><i class="fas fa-chalkboard-teacher"></i><span class="link-text">Training</span></a>
+      <a href="index.html#/datasets" id="datasets-link"><i class="fas fa-database"></i><span class="link-text">Datasets</span></a>
+      <a href="index.html#/projects" id="projects-link" class="active"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
+      <a href="https://github.com/tungedng2710/license-plate-recognition" target="_blank"><i class="fab fa-github"></i><span class="link-text">GitHub</span></a>
+      <a href="#/settings" class="user-settings"><img src="https://github.com/tungedng2710/tungedng2710.github.io/blob/main/assets/images/logo.png?raw=true" alt="User Avatar" class="h-8 w-8 rounded-full mr-2"><span class="link-text">Edward</span></a>
+    </div>
+    <div class="main-content">
+      <h1 class="text-5xl font-bold mb-10 text-center title">Video Management - Preview</h1>
+      <div id="video-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="stream-slot bg-gray-800 p-4 rounded">
+          <div class="mb-2 flex items-center">
+            <select class="camera-select p-2 rounded bg-gray-700 text-white flex-1"></select>
+            <input type="text" class="custom-url p-2 rounded bg-gray-700 text-white flex-1 ml-2 hidden" placeholder="RTSP URL" />
+            <button class="start-stream bg-blue-600 text-white px-2 py-2 rounded ml-2">Start</button>
+            <button class="stop-stream bg-red-600 text-white px-2 py-2 rounded ml-2">Stop</button>
+          </div>
+          <img class="video-stream w-full rounded" />
+        </div>
+        <div class="stream-slot bg-gray-800 p-4 rounded">
+          <div class="mb-2 flex items-center">
+            <select class="camera-select p-2 rounded bg-gray-700 text-white flex-1"></select>
+            <input type="text" class="custom-url p-2 rounded bg-gray-700 text-white flex-1 ml-2 hidden" placeholder="RTSP URL" />
+            <button class="start-stream bg-blue-600 text-white px-2 py-2 rounded ml-2">Start</button>
+            <button class="stop-stream bg-red-600 text-white px-2 py-2 rounded ml-2">Stop</button>
+          </div>
+          <img class="video-stream w-full rounded" />
+        </div>
+        <div class="stream-slot bg-gray-800 p-4 rounded">
+          <div class="mb-2 flex items-center">
+            <select class="camera-select p-2 rounded bg-gray-700 text-white flex-1"></select>
+            <input type="text" class="custom-url p-2 rounded bg-gray-700 text-white flex-1 ml-2 hidden" placeholder="RTSP URL" />
+            <button class="start-stream bg-blue-600 text-white px-2 py-2 rounded ml-2">Start</button>
+            <button class="stop-stream bg-red-600 text-white px-2 py-2 rounded ml-2">Stop</button>
+          </div>
+          <img class="video-stream w-full rounded" />
+        </div>
+        <div class="stream-slot bg-gray-800 p-4 rounded">
+          <div class="mb-2 flex items-center">
+            <select class="camera-select p-2 rounded bg-gray-700 text-white flex-1"></select>
+            <input type="text" class="custom-url p-2 rounded bg-gray-700 text-white flex-1 ml-2 hidden" placeholder="RTSP URL" />
+            <button class="start-stream bg-blue-600 text-white px-2 py-2 rounded ml-2">Start</button>
+            <button class="stop-stream bg-red-600 text-white px-2 py-2 rounded ml-2">Stop</button>
+          </div>
+          <img class="video-stream w-full rounded" />
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="auth.js"></script>
+  <script src="sidebar.js"></script>
+  <script src="video_management.js"></script>
+</body>
+</html>
