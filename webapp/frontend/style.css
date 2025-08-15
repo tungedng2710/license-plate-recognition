@@ -17,6 +17,25 @@ body {
   background-color: #1f2937;
 }
 
+button {
+  background-color: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #1d4ed8;
+}
+
+button.rounded {
+  border-radius: 12px;
+}
+
 #bg-video {
   position: fixed;
   top: 0;
@@ -32,7 +51,7 @@ body {
   color: white;
   border: none;
   padding: 10px;
-  border-radius: 5px;
+  border-radius: 12px;
   cursor: pointer;
 }
 
@@ -56,12 +75,7 @@ body {
 }
 
 .login-btn {
-  background-color: transparent;
-  border: 1px solid white;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 5px;
-  cursor: pointer;
+  padding: 0.5rem 1rem;
 }
 
 .sidebar {
@@ -181,19 +195,8 @@ body {
   margin-top: 20px;
 }
 
-#home-page button {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid white;
-  color: white;
-  padding: 10px 20px;
+#home-page .buttons button {
   margin: 0 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-#home-page button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
 }
 
 
@@ -269,8 +272,8 @@ body {
 }
 
 #dataset-cards {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 
@@ -290,7 +293,7 @@ body {
 
 .dataset-card img {
   width: 100%;
-  height: 150px;
+  height: 120px;
   object-fit: cover;
 }
 
