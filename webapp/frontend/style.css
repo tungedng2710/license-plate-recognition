@@ -17,10 +17,6 @@ body {
   background-color: #1f2937;
 }
 
-body.home-bg {
-  /* Video background handled via #bg-video */
-}
-
 #bg-video {
   position: fixed;
   top: 0;
@@ -29,11 +25,6 @@ body.home-bg {
   height: 100%;
   object-fit: cover;
   z-index: -1;
-  display: none;
-}
-
-body.home-bg #bg-video {
-  display: block;
 }
 
 .toggle-btn {
