@@ -26,6 +26,7 @@ REPO_ROOT = BASE_DIR.parent
 TRAIN_SCRIPT = BASE_DIR / "yolo_trainer" / "train.py"
 SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
 RTSP_FILE = BASE_DIR / "rtsp_url.json"
+HD_SIZE = (1280, 720)
 
 with open(REPO_ROOT / "minio_config.json") as f:
     MINIO_CFG = json.load(f)
@@ -264,6 +265,27 @@ async def alpr(file: UploadFile = File(...)):
     return Response(content=buffer.tobytes(), media_type="image/jpeg")
 
 
+@app.get("/api/video/stream")
+def video_stream(url: str):
+    def generate():
+        cap = cv2.VideoCapture(url)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.resize(frame, HD_SIZE)
+            _, buffer = cv2.imencode('.jpg', frame)
+            yield (
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
+            )
+        cap.release()
+
+    return StreamingResponse(
+        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
+    )
+
+
 @app.get("/api/alpr/stream")
 def alpr_stream(url: str):
     def generate():
@@ -274,6 +296,7 @@ def alpr_stream(url: str):
                 break
             alpr_model.vehicles = []
             frame = alpr_model(frame)
+            frame = cv2.resize(frame, HD_SIZE)
             _, buffer = cv2.imencode('.jpg', frame)
             yield (
                 b"--frame\r\n"

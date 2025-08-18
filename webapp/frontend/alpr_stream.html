@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+  <video autoplay muted loop id="bg-video">
+    <source src="static/mylivewallpapers.mp4" type="video/mp4">
+  </video>
   <div class="top-bar">
     <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-right"></i></button>
     <button id="logout-btn" class="login-btn">Logout</button>
@@ -27,7 +30,7 @@
       <a href="#/settings" class="user-settings"><img src="https://github.com/tungedng2710/tungedng2710.github.io/blob/main/assets/images/logo.png?raw=true" alt="User Avatar" class="h-8 w-8 rounded-full mr-2"><span class="link-text">Edward</span></a>
     </div>
     <div class="main-content">
-      <h1 class="text-5xl font-bold mb-10 text-center title">License Plate Recognition - Stream</h1>
+      <h1 class="text-5xl font-bold mb-10 text-center title">License Plate Recognition</h1>
       <div id="alpr-demo" class="flex flex-col items-center">
         <div class="mb-4 flex items-center" id="stream-controls">
           <select id="camera-select" class="mb-2 p-2 rounded bg-gray-700 text-white"></select>
