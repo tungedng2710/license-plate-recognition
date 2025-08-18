@@ -1,6 +1,8 @@
-conda create --name trafficcam python=3.10 -y
+conda create --name trafficcam python=3.11 -y
 conda activate trafficcam
-conda install pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install paddlepaddle-gpu==3.1.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu118/
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install paddlepaddle-gpu==3.1.1 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
 pip install paddleocr
-pip install ultralytics, easydict, onnx, onnxruntime-gpu, protobuf, filterpy, ton-ocr
+pip install fastapi uvicorn
+pip install ultralytics, easydict, onnx, onnxruntime-gpu, protobuf, filterpy, ton-ocr, filterpy
+pip install opencv-python, scikit-learn, scikit-image, matplotlib, tqdm, pandas, seaborn, shapely, pyclipper, imgaug

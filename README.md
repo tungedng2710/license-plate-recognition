@@ -20,7 +20,9 @@
 
 ## Overview
 **Update 11st August 2025**: PPOCRv5 and an Web App (beta version) for testing
+
 **Update 5th July 2024**: PPOCRv4 is added. Text detection is also added to improve performance for plates in different perspectives
+
 **Update 1st Nov 2023**: DeepSORT is replaced by SORT to speed up the flow. In addition, TensorRT inference and code for model conversion have been added.
 
 Both vehicle and plate detector based on the YOLOv8 model, please checkout the official repository [Ultralytics](https://github.com/ultralytics/ultralytics) to install environment for inference as well as training.
@@ -43,16 +45,6 @@ Install required libraries
 ```bat
 bash scripts/install.sh
 ```
-For quick inference on all videos in a folder, run 
-```bat
-bash run.sh
-```
-For quick inference on all videos in a folder, run 
-```bat
-bash scripts/run_folder.sh
-```
-
-The result would be saved in the directory ```data/log```, you can change the saved path by changing the ```--save_dir``` argument.
 
 For inference on a single video, run script below
 ```bat
