@@ -205,6 +205,15 @@ button.rounded {
     padding: 20px;
 }
 
+#training-page .title {
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  margin-bottom: 40px;
+}
+
+
 #datasets div img {
   object-fit: cover;
   height: 100px; /* Or any other fixed height */
@@ -247,12 +256,12 @@ button.rounded {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 250px;
+  width: 300px;
   height: 180px;
   background-color: #1f2937;
   color: white;
   border: 1px solid #374151;
-  border-radius: 12px;
+  border-radius: 50px;
   text-decoration: none;
   font-size: 1.5rem;
   font-weight: 600;
@@ -271,6 +280,14 @@ button.rounded {
     padding: 20px;
 }
 
+#datasets-page .title {
+  font-size: 3rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  margin-bottom: 40px;
+}
+
 #dataset-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -278,9 +295,9 @@ button.rounded {
 }
 
 .dataset-card {
-  background: #fff;
+  background: #e6eaec;
   color: #333;
-  border-radius: 8px;
+  border-radius: 50px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   cursor: pointer;
