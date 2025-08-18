@@ -82,3 +82,16 @@ uvicorn backend.main:app --reload
 ```
 
 Open `http://localhost:8000` in your browser to configure the run, select datasets, and watch training progress.
+
+## Docker
+Build and run the web application in a container:
+```bash
+docker compose up --build
+```
+This command starts the FastAPI service on [http://localhost:8000](http://localhost:8000).
+
+To build and run the image manually:
+```bash
+docker build -t trafficcam .
+docker run -p 8000:8000 trafficcam
+```
