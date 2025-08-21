@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     pc.ontrack = (e) => {
       videoEl.srcObject = e.streams[0];
     };
+    pc.addTransceiver('video', { direction: 'recvonly' });
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     const res = await fetch(`/api/alpr/offer?url=${encodeURIComponent(url)}`, {

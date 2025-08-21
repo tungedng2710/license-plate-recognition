@@ -90,8 +90,8 @@ async def alpr_offer(url: str, sdp: SDPModel):
 async def handle_offer(url: str, sdp: SDPModel, process: bool):
     offer = RTCSessionDescription(sdp.sdp, sdp.type)
     pc = RTCPeerConnection()
-    pc.addTrack(CameraStreamTrack(url, process))
     await pc.setRemoteDescription(offer)
+    pc.addTrack(CameraStreamTrack(url, process))
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
     return {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
