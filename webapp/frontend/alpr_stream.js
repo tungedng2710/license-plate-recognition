@@ -3,8 +3,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const startBtn = document.getElementById('start-stream');
   const pauseBtn = document.getElementById('pause-stream');
   const stopBtn = document.getElementById('stop-stream');
-  const streamImg = document.getElementById('alpr-stream');
-  let currentSrc = '';
+  const videoEl = document.getElementById('alpr-stream');
+  let pc = null;
 
   // load camera list
   try {
@@ -20,28 +20,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Failed to load camera list', err);
   }
 
-  startBtn.addEventListener('click', () => {
+  startBtn.addEventListener('click', async () => {
     const url = cameraSelect.value;
     if (!url) return;
-    currentSrc = `/api/alpr/stream?url=${encodeURIComponent(url)}`;
-    streamImg.src = currentSrc;
+    if (pc) {
+      pc.close();
+      pc = null;
+    }
+    pc = new RTCPeerConnection();
+    pc.ontrack = (e) => {
+      videoEl.srcObject = e.streams[0];
+    };
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const res = await fetch(`/api/alpr/offer?url=${encodeURIComponent(url)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
+    });
+    const answer = await res.json();
+    await pc.setRemoteDescription(answer);
     pauseBtn.textContent = 'Pause';
   });
 
   pauseBtn.addEventListener('click', () => {
-    if (!streamImg.src) return;
+    if (!videoEl.srcObject) return;
     if (pauseBtn.textContent === 'Pause') {
-      streamImg.removeAttribute('src');
+      videoEl.pause();
       pauseBtn.textContent = 'Resume';
     } else {
-      streamImg.src = currentSrc;
+      videoEl.play();
       pauseBtn.textContent = 'Pause';
     }
   });
 
   stopBtn.addEventListener('click', () => {
-    streamImg.removeAttribute('src');
-    currentSrc = '';
+    if (pc) {
+      pc.close();
+      pc = null;
+    }
+    videoEl.srcObject = null;
     pauseBtn.textContent = 'Pause';
   });
 });
+
