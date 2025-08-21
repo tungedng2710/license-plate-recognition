@@ -47,7 +47,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       pc = new RTCPeerConnection();
       pc.ontrack = (e) => {
-        videoEl.srcObject = e.streams[0];
+        if (e.streams && e.streams[0]) {
+          videoEl.srcObject = e.streams[0];
+        } else {
+          const stream = new MediaStream();
+          stream.addTrack(e.track);
+          videoEl.srcObject = stream;
+        }
       };
       pc.addTransceiver('video', { direction: 'recvonly' });
       const offer = await pc.createOffer();
