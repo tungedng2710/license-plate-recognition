@@ -16,7 +16,7 @@
 
 ## Prerequisite
 * Ubuntu 20.04 or later
-* 3.10 >= Python version >= 3.7
+* 3.12 >= Python version >= 3.9
 
 ## Overview
 **Update 11st August 2025**: PPOCRv5 and an Web App (beta version) for testing
