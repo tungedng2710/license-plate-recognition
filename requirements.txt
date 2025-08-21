@@ -5,6 +5,7 @@ ultralytics
 opencv-python-headless
 numpy
 ton-ocr
+aiortc
 paddleocr
 torch
 torchvision

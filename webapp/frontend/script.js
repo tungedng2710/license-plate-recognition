@@ -12,14 +12,6 @@
     const uploadInput = document.getElementById('dataset-upload');
   const modalClose = document.getElementById('modal-close');
   const startBtn = document.getElementById('start-btn');
-    const toggleBtn = document.getElementById('toggle-sidebar');
-    const sidebar = document.querySelector('.sidebar');
-
-    toggleBtn.addEventListener('click', () => {
-      const isCollapsed = sidebar.classList.toggle('collapsed');
-      toggleBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
-    });
-
     uploadBtn.addEventListener('click', () => uploadInput.click());
     uploadInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
