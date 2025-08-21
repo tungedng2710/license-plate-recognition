@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const customInput = slot.querySelector('.custom-url');
     const startBtn = slot.querySelector('.start-stream');
     const stopBtn = slot.querySelector('.stop-stream');
-    const img = slot.querySelector('.video-stream');
+    const videoEl = slot.querySelector('.video-stream');
+    let pc = null;
 
     Object.entries(cameras).forEach(([name, url]) => {
       const opt = document.createElement('option');
@@ -34,17 +35,38 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    startBtn.addEventListener('click', () => {
+    startBtn.addEventListener('click', async () => {
       let url = select.value;
       if (url === 'custom') {
         url = customInput.value.trim();
       }
       if (!url) return;
-      img.src = `/api/video/stream?url=${encodeURIComponent(url)}`;
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+      pc = new RTCPeerConnection();
+      pc.ontrack = (e) => {
+        videoEl.srcObject = e.streams[0];
+      };
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const res = await fetch(`/api/video/offer?url=${encodeURIComponent(url)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
+      });
+      const answer = await res.json();
+      await pc.setRemoteDescription(answer);
     });
 
     stopBtn.addEventListener('click', () => {
-      img.removeAttribute('src');
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+      videoEl.srcObject = null;
     });
   });
 });

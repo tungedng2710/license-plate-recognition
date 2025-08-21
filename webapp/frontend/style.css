@@ -85,7 +85,7 @@ button.rounded {
   flex-shrink: 0; /* Prevent sidebar from shrinking */
   position: fixed;
   left: 0;
-  top: 50px;
+  top: 0;
   bottom: 0;
   transition: width 0.3s;
   display: flex;
@@ -131,12 +131,26 @@ button.rounded {
   margin-top: auto;
 }
 
+.user-popup {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background-color: rgba(31, 41, 55, 0.95);
+  padding: 10px;
+  border-radius: 8px;
+  display: none;
+}
+
+.user-popup.show {
+  display: block;
+}
+
 .main-content {
   flex-grow: 1;
   padding: 20px;
   height: 100%;
   overflow-y: auto; /* Allow scrolling for content that overflows */
-  padding-top: 70px;
+  padding-top: 20px;
   padding-left: 220px;
   transition: padding-left 0.3s;
 }

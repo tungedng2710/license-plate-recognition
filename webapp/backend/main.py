@@ -1,6 +1,6 @@
 from fastapi import FastAPI, BackgroundTasks, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 from pydantic import BaseModel
 from pathlib import Path
 import subprocess
@@ -17,6 +17,9 @@ import shutil
 from types import SimpleNamespace
 from test_alpr import ALPR
 from backend.yolo_trainer.train import YOLOTrainer
+from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
+import av
+import asyncio
 
 app = FastAPI()
 
@@ -45,6 +48,53 @@ opts = SimpleNamespace(
     device="cpu",
 )
 alpr_model = ALPR(opts)
+
+
+class SDPModel(BaseModel):
+    sdp: str
+    type: str
+
+class CameraStreamTrack(VideoStreamTrack):
+    def __init__(self, url: str, process: bool = False):
+        super().__init__()
+        self.cap = cv2.VideoCapture(url)
+        self.process = process
+
+    async def recv(self):
+        pts, time_base = await self.next_timestamp()
+        ret, frame = self.cap.read()
+        if not ret:
+            frame = np.zeros((HD_SIZE[1], HD_SIZE[0], 3), dtype=np.uint8)
+        else:
+            if self.process:
+                alpr_model.vehicles = []
+                frame = alpr_model(frame)
+            frame = cv2.resize(frame, HD_SIZE)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        av_frame = av.VideoFrame.from_ndarray(frame, format="rgb24")
+        av_frame.pts = pts
+        av_frame.time_base = time_base
+        return av_frame
+
+
+@app.post("/api/video/offer")
+async def video_offer(url: str, sdp: SDPModel):
+    return await handle_offer(url, sdp, False)
+
+
+@app.post("/api/alpr/offer")
+async def alpr_offer(url: str, sdp: SDPModel):
+    return await handle_offer(url, sdp, True)
+
+
+async def handle_offer(url: str, sdp: SDPModel, process: bool):
+    offer = RTCSessionDescription(sdp.sdp, sdp.type)
+    pc = RTCPeerConnection()
+    await pc.setRemoteDescription(offer)
+    pc.addTrack(CameraStreamTrack(url, process))
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+    return {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
 
 
 @app.get("/api/rtsp_urls")
@@ -263,49 +313,5 @@ async def alpr(file: UploadFile = File(...)):
     result = alpr_model(img)
     _, buffer = cv2.imencode('.jpg', result)
     return Response(content=buffer.tobytes(), media_type="image/jpeg")
-
-
-@app.get("/api/video/stream")
-def video_stream(url: str):
-    def generate():
-        cap = cv2.VideoCapture(url)
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame = cv2.resize(frame, HD_SIZE)
-            _, buffer = cv2.imencode('.jpg', frame)
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
-            )
-        cap.release()
-
-    return StreamingResponse(
-        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
-    )
-
-
-@app.get("/api/alpr/stream")
-def alpr_stream(url: str):
-    def generate():
-        cap = cv2.VideoCapture(url)
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            alpr_model.vehicles = []
-            frame = alpr_model(frame)
-            frame = cv2.resize(frame, HD_SIZE)
-            _, buffer = cv2.imencode('.jpg', frame)
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
-            )
-        cap.release()
-
-    return StreamingResponse(
-        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
-    )
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
