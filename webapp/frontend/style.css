@@ -12,9 +12,9 @@ html {
 body {
   font-family: 'Orbitron', sans-serif;
   margin: 0;
-  color: white;
+  color: #001f3f;
   height: 100vh;
-  background-color: #1f2937;
+  background-color: #f0f4f8;
 }
 
 button {
@@ -36,23 +36,9 @@ button.rounded {
   border-radius: 12px;
 }
 
-#bg-video {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: -1;
-}
-
-.toggle-btn {
-  background-color: transparent;
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 12px;
-  cursor: pointer;
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
 }
 
 .top-bar {
@@ -80,28 +66,21 @@ button.rounded {
 
 .sidebar {
   width: 200px;
-  background-color: rgba(31, 41, 55, 0.8);
   padding: 20px;
   flex-shrink: 0; /* Prevent sidebar from shrinking */
   position: fixed;
   left: 0;
   top: 0;
   bottom: 0;
-  transition: width 0.3s;
   display: flex;
   flex-direction: column;
   z-index: 10;
 }
 
-/* Collapsed state shows only icons but keeps enough space for images */
-.sidebar.collapsed {
-  width: 100px; /* enough width for logo and avatar */
-}
-
 .sidebar a {
   display: flex;
   align-items: center;
-  color: white;
+  color: #001f3f;
   padding: 10px;
   text-decoration: none;
   border-radius: 5px;
@@ -109,22 +88,8 @@ button.rounded {
   gap: 10px;
 }
 
-.sidebar.collapsed a {
-  justify-content: center;
-}
-
-.sidebar.collapsed .link-text,
-.sidebar.collapsed h1 {
-  display: none;
-}
-
-.sidebar.collapsed #logo-link img,
-.sidebar.collapsed .user-settings img {
-  margin-right: 0;
-}
-
 .sidebar a.active, .sidebar a:hover {
-  background-color: #374151;
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 .user-settings {
@@ -135,7 +100,8 @@ button.rounded {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  background-color: rgba(31, 41, 55, 0.95);
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #001f3f;
   padding: 10px;
   border-radius: 8px;
   display: none;
@@ -152,11 +118,6 @@ button.rounded {
   overflow-y: auto; /* Allow scrolling for content that overflows */
   padding-top: 20px;
   padding-left: 220px;
-  transition: padding-left 0.3s;
-}
-
-.sidebar.collapsed + .main-content {
-    padding-left: 100px;
 }
 
 
@@ -194,14 +155,14 @@ button.rounded {
 #home-page .title {
   font-size: 6rem;
   font-weight: bold;
-  color: white;
+  color: #001f3f;
   letter-spacing: 0.1em;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   transition: text-shadow 0.3s, transform 0.3s;
 }
 
 #home-page .title:hover {
-  text-shadow: 0 0 40px rgba(255, 255, 255, 0.7);
+  text-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
   transform: scale(1.05);
 }
 
@@ -218,8 +179,8 @@ button.rounded {
 #projects-page .title {
   font-size: 3rem;
   font-weight: bold;
-  color: white;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  color: #001f3f;
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   margin-bottom: 40px;
 }
 
@@ -235,21 +196,21 @@ button.rounded {
   justify-content: center;
   width: 300px;
   height: 180px;
-  background-color: #1f2937;
-  color: white;
-  border: 1px solid #374151;
+  background-color: rgba(255, 255, 255, 0.6);
+  color: #001f3f;
+  border: 1px solid #cbd5e1;
   border-radius: 50px;
   text-decoration: none;
   font-size: 1.5rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
 }
 
 #projects-page .project-card:hover {
-  background-color: #374151;
+  background-color: rgba(255, 255, 255, 0.8);
   transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
 }
 
