@@ -8,15 +8,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <video autoplay muted loop id="bg-video">
-    <source src="static/mylivewallpapers.mp4" type="video/mp4">
-  </video>
   <div class="layout">
-    <div class="sidebar">
-      <button id="toggle-sidebar" class="toggle-btn"><i class="fas fa-chevron-left"></i></button>
+    <div class="sidebar glass">
       <a href="#/home" id="logo-link" class="flex items-center my-4">
         <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
-        <h1 class="text-2xl font-bold text-white">TonAI</h1>
+        <h1 class="text-2xl font-bold">TonAI</h1>
       </a>
       <a href="#/home" id="home-link" class="active"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
       <a href="#/projects" id="projects-link"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
@@ -27,7 +23,7 @@
         <button id="logout-btn" class="login-btn">Logout</button>
       </div>
     </div>
-    <div class="main-content">
+    <div class="main-content glass">
       <div id="home-page" class="flex justify-center items-center">
         <div class="content">
           <h1 class="title">TonAI Vision</h1>

@@ -1,15 +1,17 @@
 
 #alpr-demo {
-  background-color: rgba(31, 41, 55, 0.8);
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  color: #001f3f;
   padding: 20px;
   border-radius: 8px;
   margin-top: 20px;
 }
 
 #alpr-form input[type="file"] {
-  background-color: #374151;
-  color: white;
-  border: 1px solid #4b5563;
+  background-color: rgba(255, 255, 255, 0.6);
+  color: #001f3f;
+  border: 1px solid #cbd5e1;
   border-radius: 4px;
   padding: 8px;
 }
@@ -29,9 +31,9 @@
 }
 
 #alpr-stream-form input[type="text"] {
-  background-color: #374151;
-  color: white;
-  border: 1px solid #4b5563;
+  background-color: rgba(255, 255, 255, 0.6);
+  color: #001f3f;
+  border: 1px solid #cbd5e1;
   border-radius: 4px;
   padding: 8px;
 }
@@ -58,10 +60,12 @@
 
 .image-box {
     width: 45%;
-    border: 2px solid #374151;
+    border: 2px solid #cbd5e1;
     border-radius: 8px;
     padding: 10px;
-    background-color: #1f2937;
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    color: #001f3f;
 }
 
 #stream-box {
@@ -70,12 +74,12 @@
 
 #alpr-uploaded-image, #alpr-result {
   margin-top: 20px;
-  border: 2px solid #374151;
+  border: 2px solid #cbd5e1;
   border-radius: 8px;
 }
 
 #alpr-stream {
   margin-top: 20px;
-  border: 2px solid #374151;
+  border: 2px solid #cbd5e1;
   border-radius: 8px;
 }
