@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const customInput = slot.querySelector('.custom-url');
     const startBtn = slot.querySelector('.start-stream');
     const stopBtn = slot.querySelector('.stop-stream');
-    const videoEl = slot.querySelector('.video-stream');
-    let pc = null;
+    const imgEl = slot.querySelector('.video-stream');
+    let currentSrc = '';
 
     Object.entries(cameras).forEach(([name, url]) => {
       const opt = document.createElement('option');
@@ -35,44 +35,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    startBtn.addEventListener('click', async () => {
+    startBtn.addEventListener('click', () => {
       let url = select.value;
       if (url === 'custom') {
         url = customInput.value.trim();
       }
       if (!url) return;
-      if (pc) {
-        pc.close();
-        pc = null;
-      }
-      pc = new RTCPeerConnection();
-      pc.ontrack = (e) => {
-        if (e.streams && e.streams[0]) {
-          videoEl.srcObject = e.streams[0];
-        } else {
-          const stream = new MediaStream();
-          stream.addTrack(e.track);
-          videoEl.srcObject = stream;
-        }
-      };
-      pc.addTransceiver('video', { direction: 'recvonly' });
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      const res = await fetch(`/api/video/offer?url=${encodeURIComponent(url)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
-      });
-      const answer = await res.json();
-      await pc.setRemoteDescription(answer);
+      currentSrc = `/api/video?url=${encodeURIComponent(url)}`;
+      imgEl.src = currentSrc;
     });
 
     stopBtn.addEventListener('click', () => {
-      if (pc) {
-        pc.close();
-        pc = null;
-      }
-      videoEl.srcObject = null;
+      imgEl.src = '';
+      currentSrc = '';
     });
   });
 });
