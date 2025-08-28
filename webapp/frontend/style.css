@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron&display=swap');
+/* Fonts: Use Coves for all text; Azonix for brand */
+@import url('https://fonts.cdnfonts.com/css/coves');
+@import url('https://fonts.cdnfonts.com/css/azonix');
 
 html {
   box-sizing: border-box;
@@ -10,26 +12,41 @@ html {
 }
 
 body {
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   margin: 0;
   color: #001f3f;
   height: 100vh;
-  background-color: #f0f4f8;
+  /* Light background only */
+  background-color: #f5f7fb;
 }
 
+/* Global glass buttons */
 button {
-  background-color: #2563eb;
-  color: #fff;
-  border: none;
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #001f3f !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important; /* light border */
   padding: 0.5rem 1rem;
   border-radius: 12px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(2, 8, 23, 0.06);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
+  position: relative; /* for liquid effect */
+  overflow: hidden;   /* clip liquid */
 }
 
 button:hover {
-  background-color: #1d4ed8;
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(15, 23, 42, 0.25) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(2, 8, 23, 0.1);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(2, 8, 23, 0.06);
 }
 
 button.rounded {
@@ -39,6 +56,39 @@ button.rounded {
 .glass {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
+}
+
+/* Sidebar: more transparent glass effect */
+.sidebar.glass {
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 30px rgba(2, 8, 23, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle light sheen for the sidebar glass */
+.sidebar.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.35) 0%,
+      rgba(255,255,255,0.10) 35%,
+      rgba(255,255,255,0.04) 60%,
+      rgba(255,255,255,0.00) 100%),
+    radial-gradient(140px 90px at 30% -10%, rgba(255,255,255,0.55), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ensure sidebar content sits above the sheen */
+.sidebar.glass > * {
+  position: relative;
+  z-index: 1;
 }
 
 .top-bar {
@@ -58,6 +108,7 @@ button.rounded {
 .layout {
   display: flex;
   flex: 1;
+  min-height: 100vh; /* Ensure full height for centering */
 }
 
 .login-btn {
@@ -72,6 +123,8 @@ button.rounded {
   left: 0;
   top: 0;
   bottom: 0;
+  height: 100vh; /* Ensure it fits the screen */
+  overflow-y: auto; /* Scroll if content exceeds viewport */
   display: flex;
   flex-direction: column;
   z-index: 10;
@@ -86,10 +139,42 @@ button.rounded {
   border-radius: 5px;
   margin-bottom: 10px;
   gap: 10px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .sidebar a.active, .sidebar a:hover {
   background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Liquid blurred border effect on sidebar items */
+.sidebar a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-sizing: border-box;
+  padding: 1.5px; /* border thickness */
+  background:
+    radial-gradient(100px 100px at 20% 30%, rgba(59,130,246,0.45), transparent 60%),
+    radial-gradient(100px 100px at 80% 70%, rgba(99,102,241,0.4), transparent 60%),
+    radial-gradient(120px 120px at 40% 90%, rgba(56,189,248,0.35), transparent 60%);
+  filter: blur(10px) saturate(1.1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  /* Show only the border ring */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+}
+
+.sidebar a:hover::before,
+.sidebar a:focus-visible::before {
+  opacity: 1;
+  animation: liquid-wave 2.2s ease-in-out infinite alternate;
 }
 
 .user-settings {
@@ -100,21 +185,52 @@ button.rounded {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  background-color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.55);
   color: #001f3f;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
   display: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 28px rgba(2, 8, 23, 0.15);
+  min-width: 220px;
 }
 
 .user-popup.show {
   display: block;
 }
 
+/* User popup content */
+.user-popup .user-info {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  row-gap: 8px;
+  column-gap: 10px;
+  margin-bottom: 10px;
+}
+
+.user-popup .label {
+  font-size: 12px;
+  color: #334155;
+  opacity: 0.8;
+}
+
+.user-popup .value {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.user-popup .user-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .main-content {
   flex-grow: 1;
   padding: 20px;
-  height: 100%;
+  /* Use viewport height to enable vertical centering */
+  min-height: 100vh;
   overflow-y: auto; /* Allow scrolling for content that overflows */
   padding-top: 20px;
   padding-left: 220px;
@@ -129,35 +245,24 @@ button.rounded {
   text-align: center;
   overflow: hidden;
   height: 100%;
+  min-height: 100vh; /* Make sure it fills the screen */
 }
 
-#home-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
-  opacity: 0.5;
-  pointer-events: none;
-}
+/* Remove any overlays/gradients to keep the page light */
+#home-page::before { content: none; }
 
 #home-page .content {
   z-index: 1;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   text-align: center;
 }
 
 #home-page .title {
   font-size: 6rem;
-  font-weight: bold;
+  font-weight: 700;
+  font-family: 'Azonix', 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #001f3f;
   letter-spacing: 0.1em;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: text-shadow 0.3s, transform 0.3s;
 }
 
@@ -172,6 +277,63 @@ button.rounded {
 
 #home-page .buttons button {
   margin: 0 10px;
+}
+
+/* Make hero buttons on the landing section larger */
+.hero-btn {
+  font-size: 1.25rem;        /* larger text */
+  padding: 0.9rem 1.6rem;    /* larger click area */
+  border-radius: 14px;       /* slightly rounder */
+}
+
+/* Central glass card for homepage */
+.home-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 24px;
+  padding: 32px 44px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Headings use Coves as well */
+h1, h2, .title {
+  font-family: 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.06em;
+}
+
+/* Apply Azonix only to the sidebar brand title */
+.sidebar a#logo-link h1 {
+  font-family: 'Azonix', 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.1em;
+}
+
+/* Liquid hover effect for buttons (CSS-only) */
+button::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(120px 120px at 20% 30%, rgba(59, 130, 246, 0.35), transparent 55%),
+    radial-gradient(100px 100px at 70% 70%, rgba(99, 102, 241, 0.32), transparent 60%),
+    radial-gradient(140px 140px at 40% 80%, rgba(56, 189, 248, 0.28), transparent 60%);
+  filter: blur(14px) saturate(1.1);
+  opacity: 0;
+  transform: translateY(20%) scale(0.9);
+  transition: opacity 0.3s ease, transform 0.5s ease;
+  pointer-events: none;
+}
+
+button:hover::before {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: liquid-wave 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes liquid-wave {
+  0% { transform: translateX(-2%) translateY(0) scale(1); }
+  100% { transform: translateX(2%) translateY(-2%) scale(1.03); }
 }
 
 
@@ -206,6 +368,8 @@ button.rounded {
   cursor: pointer;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
 }
 
 #projects-page .project-card:hover {
@@ -214,3 +378,104 @@ button.rounded {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
 }
 
+/* Liquid glass overlay for project cards */
+#projects-page .project-card::before {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  border-radius: inherit;
+  background:
+    radial-gradient(180px 140px at 20% 30%, rgba(59, 130, 246, 0.28), transparent 60%),
+    radial-gradient(180px 140px at 80% 70%, rgba(99, 102, 241, 0.25), transparent 60%),
+    radial-gradient(220px 180px at 40% 90%, rgba(56, 189, 248, 0.22), transparent 60%);
+  filter: blur(14px) saturate(1.05);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+#projects-page .project-card:hover::before {
+  opacity: 1;
+  animation: liquid-wave 3s ease-in-out infinite alternate;
+}
+
+/* Chatbot widget */
+.chatbot-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+  color: #0f172a;
+  border: 1px solid rgba(15,23,42,0.12);
+  box-shadow: 0 10px 24px rgba(2,8,23,0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  z-index: 50;
+}
+
+.chatbot-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 360px;
+  height: 480px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.65);
+  border: 1px solid rgba(255,255,255,0.55);
+  box-shadow: 0 20px 40px rgba(2,8,23,0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 60;
+}
+
+.chatbot-panel.hidden { display: none; }
+
+.chatbot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(15,23,42,0.12);
+}
+
+.chatbot-header .title {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.chatbot-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.chatbot-messages {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.chat-msg { margin-bottom: 10px; display: flex; }
+.chat-msg.user { justify-content: flex-end; }
+.chat-msg.bot { justify-content: flex-start; }
+.chat-msg .bubble {
+  max-width: 80%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(15,23,42,0.12);
+  box-shadow: 0 6px 18px rgba(2,8,23,0.06);
+}
+.chat-msg.user .bubble { background: rgba(59,130,246,0.1); }
+
+.chatbot-input { display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(15,23,42,0.12); }
+.chatbot-input input { flex: 1; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(15,23,42,0.15); background: rgba(255,255,255,0.85); }
+.chatbot-input button { padding: 8px 12px; }

@@ -3,6 +3,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const startBtn = document.getElementById('start-stream');
   const pauseBtn = document.getElementById('pause-stream');
   const stopBtn = document.getElementById('stop-stream');
+  const vehicleModel = document.getElementById('vehicle-model');
+  const plateModel = document.getElementById('plate-model');
+  const useCustom = document.getElementById('use-custom');
+  const customUrl = document.getElementById('custom-url');
+  const vconf = document.getElementById('vconf');
+  const pconf = document.getElementById('pconf');
+  const vconfVal = document.getElementById('vconf-val');
+  const pconfVal = document.getElementById('pconf-val');
   const imgEl = document.getElementById('alpr-stream');
   let currentSrc = '';
 
@@ -19,10 +27,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Failed to load camera list', err);
   }
 
+  // Toggle custom URL input visibility
+  if (useCustom && customUrl) {
+    useCustom.addEventListener('change', () => {
+      if (useCustom.checked) {
+        customUrl.classList.remove('hidden');
+      } else {
+        customUrl.classList.add('hidden');
+      }
+    });
+  }
+
+  // Live update conf labels
+  if (vconf && vconfVal) {
+    vconf.addEventListener('input', () => {
+      vconfVal.textContent = Number(vconf.value).toFixed(2);
+    });
+  }
+  if (pconf && pconfVal) {
+    pconf.addEventListener('input', () => {
+      pconfVal.textContent = Number(pconf.value).toFixed(2);
+    });
+  }
+
   startBtn.addEventListener('click', () => {
-    const url = cameraSelect.value;
+    const url = (useCustom && useCustom.checked && customUrl) ? customUrl.value.trim() : cameraSelect.value;
     if (!url) return;
-    currentSrc = `/api/alpr_stream?url=${encodeURIComponent(url)}`;
+    const v = vehicleModel ? vehicleModel.value : '';
+    const p = plateModel ? plateModel.value : '';
+    const qs = new URLSearchParams({ url });
+    if (v) qs.set('vehicle_model', v);
+    if (p) qs.set('plate_model', p);
+    if (vconf) qs.set('vconf', String(vconf.value));
+    if (pconf) qs.set('pconf', String(pconf.value));
+    currentSrc = `/api/alpr_stream?${qs.toString()}`;
     imgEl.src = currentSrc;
     pauseBtn.textContent = 'Pause';
   });

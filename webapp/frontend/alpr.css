@@ -8,6 +8,37 @@
   margin-top: 20px;
 }
 
+/* Stream + control panel layout */
+.alpr-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+}
+
+.alpr-stream-area {
+  width: 100%;
+}
+
+.alpr-controls {
+  position: sticky;
+  top: 20px;
+  align-self: start;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.alpr-controls .control-label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+.alpr-controls input[type="range"] {
+  accent-color: #3b82f6; /* Tailwind blue-500 hue */
+}
+
 #alpr-form input[type="file"] {
   background-color: rgba(255, 255, 255, 0.6);
   color: #001f3f;
