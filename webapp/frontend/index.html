@@ -19,8 +19,6 @@
         <h1 class="text-2xl font-bold text-white">TonAI</h1>
       </a>
       <a href="#/home" id="home-link" class="active"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
-      <a href="#/training" id="training-link"><i class="fas fa-chalkboard-teacher"></i><span class="link-text">Training</span></a>
-      <a href="#/datasets" id="datasets-link"><i class="fas fa-database"></i><span class="link-text">Datasets</span></a>
       <a href="#/projects" id="projects-link"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
       <a href="https://github.com/tungedng2710/license-plate-recognition" target="_blank"><i class="fab fa-github"></i><span class="link-text">GitHub</span></a>
       <a href="#" class="user-settings"><img src="https://avatars.githubusercontent.com/u/48611435?v=4"
@@ -39,68 +37,6 @@
           </div>
         </div>
       </div>
-      <div id="training-page" style="display: none;">
-        <h1 class="text-5xl font-bold mb-6 text-center title">Train Models</h1>
-
-        <section>
-          <h2 class="text-xl font-semibold mb-2">Available Datasets</h2>
-          <div id="datasets" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-        </section>
-
-        <section class="mt-8">
-          <h2 class="text-xl font-semibold mb-2">Training Configuration</h2>
-          <form id="trainForm" class="space-y-4 max-w-md">
-            <div>
-              <label class="block text-sm font-medium">Dataset</label>
-              <input id="dataset" required class="mt-1 w-full border rounded p-2" />
-            </div>
-            <div class="flex gap-4">
-              <div class="flex-1">
-                <label class="block text-sm font-medium">Batch Size</label>
-                <input type="number" id="batch" value="16" class="mt-1 w-full border rounded p-2" />
-              </div>
-              <div class="flex-1">
-                <label class="block text-sm font-medium">Image Size</label>
-                <input type="number" id="img" value="640" class="mt-1 w-full border rounded p-2" />
-              </div>
-            </div>
-            <div class="flex gap-4">
-              <div class="flex-1">
-                <label class="block text-sm font-medium">Model</label>
-                <select id="model" class="mt-1 w-full border rounded p-2">
-                  <option value="yolov8n">yolov8n</option>
-                  <option value="yolov8s">yolov8s</option>
-                  <option value="yolov8m">yolov8m</option>
-                  <option value="yolo11n">yolo11n</option>
-                  <option value="yolo11x">yolo11x</option>
-                </select>
-              </div>
-              <div class="flex-1">
-                <label class="block text-sm font-medium">Epochs</label>
-                <input type="number" id="epochs" value="100" class="mt-1 w-full border rounded p-2" />
-              </div>
-            </div>
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Train</button>
-          </form>
-
-          <div id="progressSection" class="mt-6 hidden max-w-md">
-            <div class="w-full bg-gray-200 rounded-full h-4">
-              <div id="progressBar" class="bg-blue-600 h-4 rounded-full" style="width: 0%"></div>
-            </div>
-            <p id="progressText" class="text-sm mt-1 text-gray-700">0%</p>
-          </div>
-        </section>
-      </div>
-      <div id="datasets-page" style="display: none;">
-        <h1 class="text-5xl font-bold mb-10 text-center title">Datasets</h1>
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <input type="file" id="dataset-upload" accept=".zip" class="hidden" />
-            <button id="upload-btn" class="bg-blue-600 text-white px-4 py-2 rounded">Upload</button>
-          </div>
-        </div>
-        <div id="dataset-cards"></div>
-      </div>
       <div id="projects-page" style="display: none;">
         <h1 class="text-5xl font-bold mb-10 text-center title">Projects</h1>
         <div class="project-cards">
@@ -113,18 +49,7 @@
       </div>
     </div>
   </div>
-  <div id="dataset-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-    <div class="bg-white text-black p-6 rounded-lg w-80">
-      <div class="flex justify-between items-center mb-4">
-        <h2 id="modal-title" class="text-xl font-bold"></h2>
-        <button id="modal-close" class="text-gray-500">&times;</button>
-      </div>
-      <canvas id="datasetChart" class="mb-4"></canvas>
-      <p id="dataset-counts" class="text-center"></p>
-    </div>
-  </div>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="auth.js"></script>
   <script src="sidebar.js"></script>
   <script src="script.js"></script>

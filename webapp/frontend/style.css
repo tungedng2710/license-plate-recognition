@@ -215,43 +215,6 @@ button.rounded {
 
 
 
-#training-page {
-    padding: 20px;
-}
-
-#training-page .title {
-  font-size: 3rem;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-  margin-bottom: 40px;
-}
-
-
-#datasets div img {
-  object-fit: cover;
-  height: 100px; /* Or any other fixed height */
-}
-
-#datasets div {
-    background-color: white;
-    color: #333;
-}
-
-#trainForm {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    color: #333;
-}
-
-#progressSection {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    color: #333;
-}
-
 #projects-page .title {
   font-size: 3rem;
   font-weight: bold;
@@ -290,58 +253,3 @@ button.rounded {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
-#datasets-page {
-    padding: 20px;
-}
-
-#datasets-page .title {
-  font-size: 3rem;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-  margin-bottom: 40px;
-}
-
-#dataset-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.dataset-card {
-  background: #e6eaec;
-  color: #333;
-  border-radius: 50px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.dataset-card:hover {
-  transform: translateY(-4px);
-}
-
-.dataset-card img {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-}
-
-.dataset-card .tags {
-  margin-top: 0.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.dataset-card .tags span {
-  background: #e5e7eb;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-#dataset-modal canvas {
-  max-width: 100%;
-}
