@@ -29,14 +29,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = panel.querySelector('#chatbot-send');
   const closeBtn = panel.querySelector('.chatbot-close');
 
+  // Persist chat history while the chat is open; clear on close
+  const HISTORY_KEY = 'chatbot_history_v1';
+  function loadHistory() {
+    try { const raw = localStorage.getItem(HISTORY_KEY); return raw ? JSON.parse(raw) : []; } catch (_) { return []; }
+  }
+  function saveHistory(arr) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch (_) {}
+  }
+  function clearHistory() { try { localStorage.removeItem(HISTORY_KEY); } catch (_) {} }
+
+  let history = loadHistory();
+  function renderHistory() {
+    messagesEl.innerHTML = '';
+    for (const m of history) {
+      appendMessage(m.role, m.text, true);
+    }
+  }
+
   function togglePanel(show) {
     if (show === true) {
       panel.classList.remove('hidden');
       fab.classList.add('hidden');
+      renderHistory();
       inputEl.focus();
     } else if (show === false) {
       panel.classList.add('hidden');
       fab.classList.remove('hidden');
+      // Clear history on close per requirement
+      history = [];
+      clearHistory();
+      messagesEl.innerHTML = '';
     } else {
       panel.classList.toggle('hidden');
       fab.classList.toggle('hidden');
@@ -46,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fab.addEventListener('click', () => togglePanel(true));
   closeBtn.addEventListener('click', () => togglePanel(false));
 
-  function appendMessage(role, text) {
+  function appendMessage(role, text, fromHistory = false) {
     const wrap = document.createElement('div');
     wrap.className = `chat-msg ${role}`;
     const bubble = document.createElement('div');
@@ -55,7 +78,11 @@ document.addEventListener('DOMContentLoaded', () => {
     wrap.appendChild(bubble);
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    return bubble;
+    if (!fromHistory) {
+      history.push({ role, text });
+      saveHistory(history);
+    }
+    return { bubble, index: history.length - 1 };
   }
 
   // Minimal, safe Markdown rendering for bot messages
@@ -92,7 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
     inputEl.value = '';
 
     appendMessage('user', prompt);
-    const botBubble = appendMessage('bot', '');
+    const botEntry = appendMessage('bot', '');
+    const botBubble = botEntry.bubble;
+    const botIndex = botEntry.index;
     let botText = '';
 
     try {
@@ -123,6 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (value) {
             botText += decoder.decode(value, { stream: true });
             botBubble.innerHTML = mdToHtml(botText);
+            // persist incremental bot text
+            history[botIndex].text = botText;
+            saveHistory(history);
             messagesEl.scrollTop = messagesEl.scrollHeight;
           }
         }
@@ -131,10 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = await res.text();
         botText = text || 'Error: failed to receive response.';
         botBubble.innerHTML = mdToHtml(botText);
+        history[botIndex].text = botText;
+        saveHistory(history);
       }
     } catch (e) {
       botBubble.textContent = 'Error: ' + (e && e.message ? e.message : 'unknown');
     }
+    // Ensure final message stored
+    history[botIndex].text = botText || history[botIndex].text || '';
+    saveHistory(history);
   }
 
   sendBtn.addEventListener('click', sendMessage);

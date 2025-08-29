@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TonAI Computer Vision Hub</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=13">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -15,13 +15,10 @@
         <h1 class="text-2xl font-bold">TonAI</h1>
       </a>
       <a href="#/home" id="home-link" class="active"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
-      <a href="#/projects" id="projects-link"><i class="fas fa-project-diagram"></i><span class="link-text">Projects</span></a>
+      <a href="#/projects" id="projects-link"><i class="fas fa-folder"></i><span class="link-text">Projects</span></a>
       <a href="https://github.com/tungedng2710/license-plate-recognition" target="_blank"><i class="fab fa-github"></i><span class="link-text">GitHub</span></a>
-      <a href="#" class="user-settings"><img src="https://avatars.githubusercontent.com/u/48611435?v=4"
+      <a href="user.html" class="user-settings"><img src="https://avatars.githubusercontent.com/u/48611435?v=4"
                 alt="User Avatar" class="h-8 w-8 rounded-full mr-2"><span class="link-text">Edward</span></a>
-      <div id="user-popup" class="user-popup">
-        <button id="logout-btn" class="login-btn">Logout</button>
-      </div>
     </div>
     <div class="main-content">
       <div id="home-page" class="flex justify-center items-center">
@@ -40,14 +37,13 @@
           <a href="alpr_stream.html" class="project-card">ALPR</a>
           <a href="video_management.html" class="project-card">Cameras</a>
           <a href="http://116.103.227.252:7866" target="_blank" class="project-card">OCR</a>
-          <a href="http://27.66.108.30:7861" target="_blank" class="project-card">Chatbot</a>
+          <!-- <a href="http://27.66.108.30:7861" target="_blank" class="project-card">Chatbot</a> -->
         </div>
       </div>
     </div>
   </div>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="auth.js"></script>
-  <script src="sidebar.js"></script>
   <script src="script.js"></script>
   <script src="chatbot.js"></script>
 </body>

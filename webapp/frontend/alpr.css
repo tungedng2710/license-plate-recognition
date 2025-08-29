@@ -11,8 +11,13 @@
 /* Stream + control panel layout */
 .alpr-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .alpr-layout { grid-template-columns: 1fr; }
+  .alpr-controls { position: static; }
 }
 
 .alpr-stream-area {
@@ -110,7 +115,7 @@
 }
 
 #alpr-stream {
-  margin-top: 20px;
+  margin-top: 0;
   border: 2px solid #cbd5e1;
   border-radius: 8px;
 }
