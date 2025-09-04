@@ -8,7 +8,7 @@ import numpy as np
 import json
 from types import SimpleNamespace
 from typing import Optional
-from test_alpr import ALPR
+from webapp.backend.alpr_tracker import ALPRTracker
 import platform
 import subprocess
 import shutil
@@ -36,19 +36,27 @@ STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
 RTSP_FILE = BASE_DIR / "rtsp_url.json"
 
-# Initialize ALPR model
+# Initialize ALPR tracker (tracking + OCR)
 opts = SimpleNamespace(
     vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolov8s_640.pt"),
     plate_weight=str(REPO_ROOT / "weights" / "plate_yolov8n_320_2024.pt"),
+    dsort_weight=str(REPO_ROOT / "weights" / "deepsort" / "ckpt.t7"),
     vconf=0.6,
     pconf=0.25,
     ocr_thres=0.8,
     device="cpu",
+    deepsort=False,  # set True to use DeepSORT, else SORT
+    read_plate=True,
 )
-alpr_model = ALPR(opts)
+alpr_model = ALPRTracker(opts)
 
 
-def gen_frames(url: str, process: bool = False, vconf: Optional[float] = None, pconf: Optional[float] = None):
+def gen_frames(
+    url: str,
+    process: bool = False,
+    vconf: Optional[float] = None,
+    pconf: Optional[float] = None,
+):
     cap = cv2.VideoCapture(url)
     while True:
         ret, frame = cap.read()
@@ -60,8 +68,7 @@ def gen_frames(url: str, process: bool = False, vconf: Optional[float] = None, p
                 alpr_model.opts.vconf = float(vconf)
             if pconf is not None:
                 alpr_model.opts.pconf = float(pconf)
-            alpr_model.vehicles = []
-            frame = alpr_model(frame)
+            frame = alpr_model.process_frame(frame)
         _, buffer = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
@@ -74,7 +81,11 @@ def video_stream(url: str):
 
 
 @app.get("/api/alpr_stream")
-def alpr_stream(url: str, vconf: Optional[float] = None, pconf: Optional[float] = None):
+def alpr_stream(
+    url: str,
+    vconf: Optional[float] = None,
+    pconf: Optional[float] = None,
+):
     return StreamingResponse(
         gen_frames(url, True, vconf=vconf, pconf=pconf),
         media_type="multipart/x-mixed-replace; boundary=frame",
@@ -94,8 +105,7 @@ def get_rtsp_urls():
 async def alpr(file: UploadFile = File(...)):
     data = await file.read()
     img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-    alpr_model.vehicles = []
-    result = alpr_model(img)
+    result = alpr_model.process_image(img)
     _, buffer = cv2.imencode('.jpg', result)
     return Response(content=buffer.tobytes(), media_type="image/jpeg")
 

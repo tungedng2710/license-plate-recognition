@@ -15,6 +15,11 @@
   gap: 16px;
 }
 
+/* Make ALPR stream area wider on large screens */
+.alpr-layout {
+  max-width: 1600px; /* allow a larger monitor window */
+}
+
 @media (max-width: 1024px) {
   .alpr-layout { grid-template-columns: 1fr; }
   .alpr-controls { position: static; }
@@ -118,4 +123,8 @@
   margin-top: 0;
   border: 2px solid #cbd5e1;
   border-radius: 8px;
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - 180px); /* fit viewport minus header/controls */
+  object-fit: contain;
 }
