@@ -1,4 +1,5 @@
 from pathlib import Path
+import unicodedata
 import re
 from typing import Dict, List
 
@@ -11,6 +12,7 @@ from tracking.deep_sort import DeepSort
 from tracking.sort import Sort
 from utils.utils import (
     BGR_COLORS,
+    VEHICLES,
     Vehicle,
     check_image_size,
     check_legit_plate,
@@ -18,6 +20,7 @@ from utils.utils import (
     crop_expanded_plate,
     draw_text,
     gettime,
+    map_label,
 )
 from paddleocr import PaddleOCR
 
@@ -64,6 +67,8 @@ class ALPRTracker:
 
         # Misc
         self.color = BGR_COLORS
+        # Language for vehicle labels (default to English like web UI expects)
+        self.lang = getattr(self.opts, "lang", "en")
 
     def _init_tracker(self):
         if self.deepsort:
@@ -176,16 +181,18 @@ class ALPRTracker:
                         best_iou = iou_val
                         best_cls = int(det_cls[j]) if j < det_cls.shape[0] else None
                 if best_cls is not None and best_iou > 0.1:
-                    # Use model's class names if available
+                    # Map class index to label following main.py behavior
                     try:
-                        cls_name = (
-                            self.vehicle_detector.names[best_cls]
-                            if hasattr(self.vehicle_detector, "names") and best_cls in self.vehicle_detector.names
-                            else str(best_cls)
-                        )
+                        labels = VEHICLES.get(self.lang, VEHICLES.get("en", []))
+                        cls_name = map_label(best_cls, labels)
                     except Exception:
                         cls_name = str(best_cls)
-                    track_label[identity] = cls_name
+                    # Normalize to ASCII to ensure OpenCV can render it
+                    try:
+                        ascii_name = unicodedata.normalize("NFKD", str(cls_name)).encode("ascii", "ignore").decode("ascii")
+                        track_label[identity] = ascii_name if ascii_name else f"ID {identity}"
+                    except Exception:
+                        track_label[identity] = str(cls_name)
                 else:
                     track_label[identity] = f"ID {identity}"
             else:
@@ -194,14 +201,17 @@ class ALPRTracker:
             # Draw label above the vehicle box
             try:
                 label_text = track_label.get(identity, f"ID {identity}")
+                # Follow main.py styling: blue text on green background at top-left
+                txt = self.color["blue"]
+                bg = self.color["green"]
                 draw_text(
                     img=displayed_frame,
                     text=str(label_text),
-                    pos=(int(x1), max(0, int(y1) - 24)),
-                    text_color=self.color["white"],
-                    text_color_bg=self.color["black"],
-                    font_scale=0.6,
-                    font_thickness=1,
+                    pos=(int(x1), int(y1)),
+                    text_color=txt,
+                    text_color_bg=bg,
+                    font_scale=0.7,
+                    font_thickness=2,
                 )
             except Exception:
                 pass

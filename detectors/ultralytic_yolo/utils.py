@@ -69,7 +69,6 @@ def xyxy2xywh(x):
     y[..., 3] = x[..., 3] - x[..., 1]  # height
     return y
 
-
 def draw_detections(image, boxes, scores, class_ids, mask_alpha=0.3):
     mask_img = image.copy()
     det_img = image.copy()
@@ -107,7 +106,6 @@ def draw_detections(image, boxes, scores, class_ids, mask_alpha=0.3):
                     cv2.FONT_HERSHEY_SIMPLEX, size, (255, 255, 255), text_thickness, cv2.LINE_AA)
 
     return cv2.addWeighted(mask_img, mask_alpha, det_img, 1 - mask_alpha, 0)
-
 
 def draw_comparison(img1, img2, name1, name2, fontsize=2.6, text_thickness=3):
     (tw, th), _ = cv2.getTextSize(text=name1, fontFace=cv2.FONT_HERSHEY_DUPLEX,

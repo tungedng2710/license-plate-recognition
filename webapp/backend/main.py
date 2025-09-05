@@ -47,6 +47,7 @@ opts = SimpleNamespace(
     device="cpu",
     deepsort=False,  # set True to use DeepSORT, else SORT
     read_plate=True,
+    lang="en",  # follow main.py label mapping (car, bus, ...)
 )
 alpr_model = ALPRTracker(opts)
 
