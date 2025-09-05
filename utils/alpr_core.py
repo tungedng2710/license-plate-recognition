@@ -1,12 +1,11 @@
-from pathlib import Path
-import unicodedata
+from typing import Dict, List, Optional
 import re
-from typing import Dict, List
 
 import cv2
 import numpy as np
 import torch
 from ultralytics import YOLO
+from paddleocr import PaddleOCR
 
 from tracking.deep_sort import DeepSort
 from tracking.sort import Sort
@@ -22,55 +21,45 @@ from utils.utils import (
     gettime,
     map_label,
 )
-from paddleocr import PaddleOCR
 
 
-class ALPRTracker:
+class ALPRCore:
     """
-    Web-oriented ALPR pipeline with tracking, adapted from main.py (TrafficCam).
+    Shared ALPR pipeline used by both CLI and webapp.
 
-    Maintains tracker + vehicle state across frames and exposes a single-frame
-    processing method suitable for HTTP streaming.
+    - Detects vehicles and plates with YOLO
+    - Tracks with SORT/DeepSORT
+    - OCR with PaddleOCR
+    - Exposes `process_frame` and `process_image`
     """
 
     def __init__(self, opts):
-        # Options (SimpleNamespace or similar)
         self.opts = opts
 
-        # Resolve repo root for weights (webapp/backend/ -> repo root)
-        self._repo_root = Path(__file__).resolve().parents[2]
-
-        # Load detectors
+        # Detectors
         self.vehicle_detector = YOLO(self.opts.vehicle_weight, task="detect")
         self.plate_detector = YOLO(self.opts.plate_weight, task="detect")
 
-        # Plate OCR (PaddleOCR v5 style)
-        self.read_plate = getattr(self.opts, "read_plate", True)
+        # OCR
+        self.read_plate = bool(getattr(self.opts, "read_plate", True))
         self.ocr = PaddleOCR(
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,
         )
-        self.ocr_thres = getattr(self.opts, "ocr_thres", 0.9)
+        self.ocr_thres: float = float(getattr(self.opts, "ocr_thres", 0.9))
 
         # Tracking
-        self.deepsort = bool(getattr(self.opts, "deepsort", False))
-        self.dsort_weight = str(
-            getattr(
-                self.opts,
-                "dsort_weight",
-                self._repo_root / "weights/deepsort/ckpt.t7",
-            )
-        )
+        self.deepsort: bool = bool(getattr(self.opts, "deepsort", False))
+        self.dsort_weight: str = str(getattr(self.opts, "dsort_weight", "weights/deepsort/ckpt.t7"))
         self.vehicles: Dict[int, Vehicle] = {}
         self._init_tracker()
 
         # Misc
         self.color = BGR_COLORS
-        # Language for vehicle labels (default to English like web UI expects)
         self.lang = getattr(self.opts, "lang", "en")
 
-    def _init_tracker(self):
+    def _init_tracker(self) -> None:
         if self.deepsort:
             self.tracker = DeepSort(
                 self.dsort_weight,
@@ -87,7 +76,7 @@ class ALPRTracker:
             self.tracker = Sort()
         self.vehicles = {}
 
-    def reset(self):
+    def reset(self) -> None:
         self._init_tracker()
 
     def _extract_plate_text(self, plate_image):
@@ -104,10 +93,6 @@ class ALPRTracker:
             return "", 0.0
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
-        """
-        Process a single frame: detect vehicles, track, detect plates and OCR,
-        then draw overlays and return annotated frame.
-        """
         if frame is None or frame.size == 0:
             return frame
 
@@ -123,12 +108,11 @@ class ALPRTracker:
             conf=self.opts.vconf,
         )[0]
         boxes = detection.boxes
-        # Prepare detection data for labeling (xyxy, cls, conf)
+
         det_xyxy = boxes.xyxy.cpu().numpy() if len(boxes) else np.empty((0, 4))
         det_cls = boxes.cls.cpu().numpy().astype(int) if len(boxes) else np.empty((0,), dtype=int)
-        det_conf = boxes.conf.cpu().numpy() if len(boxes) else np.empty((0,), dtype=float)
 
-        # Tracking update
+        # Tracking
         try:
             if self.deepsort:
                 outputs = self.tracker.update(boxes.cpu().xywh, boxes.cpu().conf, frame)
@@ -137,7 +121,6 @@ class ALPRTracker:
         except Exception:
             outputs = np.empty((0, 5), dtype=int)
 
-        # Helper: IoU between two boxes (x1,y1,x2,y2)
         def _iou(a, b):
             x1 = max(a[0], b[0])
             y1 = max(a[1], b[1])
@@ -151,65 +134,44 @@ class ALPRTracker:
             union = area_a + area_b - inter
             return float(inter) / float(union + 1e-6)
 
-        # Map each track to the best matching detection class (for labeling)
-        track_label: Dict[int, str] = {}
         in_frame_ids: List[int] = []
-        for idx in range(len(outputs)):
-            identity = int(outputs[idx, -1])
-            in_frame_ids.append(identity)
-            if identity not in self.vehicles:
-                self.vehicles[identity] = Vehicle(track_id=identity)
-            vehicle = self.vehicles[identity]
-            vehicle.bbox_xyxy = outputs[idx, :4]
-            x1, y1, x2, y2 = vehicle.bbox_xyxy
+        det_label_for_track: Dict[int, str] = {}
+
+        for i in range(len(outputs)):
+            tid = int(outputs[i, -1])
+            in_frame_ids.append(tid)
+            if tid not in self.vehicles:
+                self.vehicles[tid] = Vehicle(track_id=tid)
+            v = self.vehicles[tid]
+            v.bbox_xyxy = outputs[i, :4]
+
+            x1, y1, x2, y2 = v.bbox_xyxy
             cv2.rectangle(
-                displayed_frame,
-                (int(x1), int(y1)),
-                (int(x2), int(y2)),
-                compute_color(identity),
-                1,
+                displayed_frame, (int(x1), int(y1)), (int(x2), int(y2)), compute_color(tid), 1
             )
 
-            # Assign class label via IoU matching with detections
             if det_xyxy.shape[0] > 0:
                 tb = np.array([float(x1), float(y1), float(x2), float(y2)])
-                best_iou = 0.0
-                best_cls = None
+                best_iou, best_cls = 0.0, None
                 for j in range(det_xyxy.shape[0]):
                     iou_val = _iou(tb, det_xyxy[j])
                     if iou_val > best_iou:
-                        best_iou = iou_val
-                        best_cls = int(det_cls[j]) if j < det_cls.shape[0] else None
+                        best_iou, best_cls = iou_val, int(det_cls[j])
                 if best_cls is not None and best_iou > 0.1:
-                    # Map class index to label following main.py behavior
                     try:
                         labels = VEHICLES.get(self.lang, VEHICLES.get("en", []))
-                        cls_name = map_label(best_cls, labels)
+                        det_label_for_track[tid] = map_label(best_cls, labels)
                     except Exception:
-                        cls_name = str(best_cls)
-                    # Normalize to ASCII to ensure OpenCV can render it
-                    try:
-                        ascii_name = unicodedata.normalize("NFKD", str(cls_name)).encode("ascii", "ignore").decode("ascii")
-                        track_label[identity] = ascii_name if ascii_name else f"ID {identity}"
-                    except Exception:
-                        track_label[identity] = str(cls_name)
-                else:
-                    track_label[identity] = f"ID {identity}"
-            else:
-                track_label[identity] = f"ID {identity}"
+                        det_label_for_track[tid] = str(best_cls)
 
-            # Draw label above the vehicle box
+            label_text = det_label_for_track.get(tid, f"ID {tid}")
             try:
-                label_text = track_label.get(identity, f"ID {identity}")
-                # Follow main.py styling: blue text on green background at top-left
-                txt = self.color["blue"]
-                bg = self.color["green"]
                 draw_text(
                     img=displayed_frame,
                     text=str(label_text),
                     pos=(int(x1), int(y1)),
-                    text_color=txt,
-                    text_color_bg=bg,
+                    text_color=self.color["blue"],
+                    text_color_bg=self.color["green"],
                     font_scale=0.7,
                     font_thickness=2,
                 )
@@ -220,9 +182,8 @@ class ALPRTracker:
         if self.read_plate and in_frame_ids:
             active: List[Vehicle] = []
             crops: List[np.ndarray] = []
-
-            for identity in in_frame_ids:
-                v = self.vehicles[identity]
+            for tid in in_frame_ids:
+                v = self.vehicles[tid]
                 box = v.bbox_xyxy.astype(int)
                 success = (
                     (v.ocr_conf > self.ocr_thres)
@@ -230,7 +191,6 @@ class ALPRTracker:
                     and check_legit_plate(v.plate_number)
                 )
                 if success:
-                    # draw plate text near bbox
                     draw_text(
                         img=displayed_frame,
                         text=v.plate_number,
@@ -240,7 +200,6 @@ class ALPRTracker:
                     )
                     continue
 
-                # Prepare vehicle crop for plate detector
                 crop = frame[box[1] : box[3], box[0] : box[2], :]
                 v.vehicle_image = crop
                 if not check_image_size(crop, 112, 112):
@@ -265,7 +224,6 @@ class ALPRTracker:
                     if len(plate_xyxy) < 1:
                         continue
                     pxyxy = plate_xyxy[0].cpu().numpy().astype(int)
-                    # draw plate bbox in original frame coords
                     src = (int(pxyxy[0] + box[0]), int(pxyxy[1] + box[1]))
                     dst = (int(pxyxy[2] + box[0]), int(pxyxy[3] + box[1]))
                     cv2.rectangle(displayed_frame, src, dst, self.color["green"], 2)
@@ -279,14 +237,13 @@ class ALPRTracker:
                     v.license_plate_bbox = pxyxy + np.array([box[0], box[1], box[0], box[1]])
                     with_plate.append(v)
 
-                # OCR pass
                 for v in with_plate:
                     text, conf = self._extract_plate_text(v.plate_image)
                     if conf > v.ocr_conf:
                         v.plate_number = text
                         v.ocr_conf = conf
 
-        # Misc: FPS display
+        # FPS overlay
         dt = gettime() - t0
         fps = int(round(1.0 / dt, 0)) if dt > 0 else 0
         draw_text(
@@ -301,6 +258,6 @@ class ALPRTracker:
         return displayed_frame
 
     def process_image(self, img: np.ndarray) -> np.ndarray:
-        """Process a standalone image (resets tracker state)."""
         self.reset()
         return self.process_frame(img)
+

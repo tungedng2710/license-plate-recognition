@@ -8,7 +8,7 @@ import numpy as np
 import json
 from types import SimpleNamespace
 from typing import Optional
-from webapp.backend.alpr_tracker import ALPRTracker
+from utils.alpr_core import ALPRCore
 import platform
 import subprocess
 import shutil
@@ -36,7 +36,7 @@ STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
 RTSP_FILE = BASE_DIR / "rtsp_url.json"
 
-# Initialize ALPR tracker (tracking + OCR)
+# Initialize ALPR tracker (tracking + OCR) using shared core
 opts = SimpleNamespace(
     vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolov8s_640.pt"),
     plate_weight=str(REPO_ROOT / "weights" / "plate_yolov8n_320_2024.pt"),
@@ -49,7 +49,7 @@ opts = SimpleNamespace(
     read_plate=True,
     lang="en",  # follow main.py label mapping (car, bus, ...)
 )
-alpr_model = ALPRTracker(opts)
+alpr_model = ALPRCore(opts)
 
 
 def gen_frames(
