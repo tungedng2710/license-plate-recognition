@@ -1,6 +1,6 @@
 import numpy as np
 
-VIDEO_SOURCE = "/media/tungn197/hdd1/traffic_data/HPG_ngatu363_2.mp4"
+VIDEO_SOURCE = "traffic_data/HPG_ngatu363_2.mp4"
 REGIONS = {
     "road1": {
         "vertices": np.array([[1386, 167], [889, 843], [2078, 843], [1535, 167]], np.int32), # clockwise

@@ -1,48 +1,89 @@
-import os
-import cv2
+import argparse
 import re
-from ton_ocr import TonOCRPipeline
+from functools import lru_cache
+from typing import Optional, Tuple
+
+import cv2
+import numpy as np
 from paddleocr import PaddleOCR
+
 from utils.utils import check_legit_plate
 
-PLATE_READER = TonOCRPipeline()
-ocr = PaddleOCR(
-    use_doc_orientation_classify=False,
-    use_doc_unwarping=False,
-    use_textline_orientation=False)
 
-
-def extract_plate_info(plate_image, conf_thres=0.5):
-    """Read license plate information
-
-    Args:
-        plate_image (np.ndarray): image read by OpenCV Python
-        conf_thres (float): confidence threshold for OCR
+@lru_cache(maxsize=1)
+def get_ocr() -> PaddleOCR:
+    """Lazily construct and cache a PaddleOCR instance.
 
     Returns:
-        (string, float): OCR result and average confidence
+        PaddleOCR: Configured OCR engine instance.
     """
-    # results = PLATE_READER.predict(plate_image)
-    results = ocr.predict(input=plate_image)
-    if len(results) > 0:
-
-        plate_info = ''
-        plate_info = " ".join(results[0]['rec_texts'])
-        conf = sum(results[0]['rec_scores']) / len(results[0]['rec_scores']) if results[0]['rec_scores'] else float('nan')
-        plate_info = re.sub(r'[^A-Za-z0-9\-.]', '', plate_info)
-        if plate_info and plate_info[0].isalpha():  # starts with a letter
-            if len(plate_info) > 2:
-                if plate_info[2] == 'C':  # replace 'C' with 0
-                    plate_info = plate_info[:2] + '0' + plate_info[3:]
-        if conf > conf_thres and check_legit_plate(plate_info):
-            return plate_info, conf
-        else:
-            return f'', 0
-    else:
-        return '', 0
+    return PaddleOCR(
+        use_doc_orientation_classify=False,
+        use_doc_unwarping=False,
+        use_textline_orientation=False,
+    )
 
 
-if __name__ == '__main__':
-    image = cv2.imread("./data/test_samples/bien1.png")
-    result = extract_plate_info(image)
-    print(result)
+def extract_plate_info(
+    plate_image: np.ndarray,
+    conf_thres: float = 0.5,
+    ocr: Optional[PaddleOCR] = None,
+) -> Tuple[str, float]:
+    """Extract license plate text and confidence from an image.
+
+    Args:
+        plate_image: OpenCV image (BGR) containing a license plate.
+        conf_thres: Minimum average confidence to accept the OCR result.
+        ocr: Optional OCR engine; if not provided, uses a cached PaddleOCR.
+
+    Returns:
+        Tuple[str, float]: (plate_text, avg_confidence). Returns ('', 0.0) if
+        confidence is below threshold or the plate text is not valid.
+    """
+    if plate_image is None or not isinstance(plate_image, np.ndarray):
+        return "", 0.0
+
+    engine = ocr or get_ocr()
+
+    try:
+        results = engine.predict(input=plate_image)
+    except Exception:
+        # If OCR fails for any reason, treat as no result
+        return "", 0.0
+
+    if not results:
+        return "", 0.0
+
+    rec_texts = results[0].get("rec_texts", [])
+    rec_scores = results[0].get("rec_scores", [])
+
+    plate_info = " ".join(rec_texts) if rec_texts else ""
+
+    # Sanitize: keep only alphanumerics, dash, dot
+    plate_info = re.sub(r"[^A-Za-z0-9\-.]", "", plate_info)
+
+    # Heuristic: if starts with a letter and the 3rd char equals 'C', replace with '0'
+    if plate_info and plate_info[0].isalpha() and len(plate_info) > 2:
+        if plate_info[2] == "C":
+            plate_info = plate_info[:2] + "0" + plate_info[3:]
+
+    conf = float(sum(rec_scores) / len(rec_scores)) if rec_scores else 0.0
+
+    if conf >= conf_thres and check_legit_plate(plate_info):
+        return plate_info, conf
+    return "", 0.0
+
+
+def _cli() -> None:
+    parser = argparse.ArgumentParser(description="OCR license plate text from an image.")
+    parser.add_argument("image", help="Path to input image (OpenCV-readable)")
+    parser.add_argument("--thres", type=float, default=0.5, help="Confidence threshold")
+    args = parser.parse_args()
+
+    img = cv2.imread(args.image)
+    text, conf = extract_plate_info(img, conf_thres=args.thres)
+    print({"text": text, "confidence": conf})
+
+
+if __name__ == "__main__":
+    _cli()
