@@ -15,7 +15,7 @@ from tracking.deep_sort import DeepSort
 from tracking.sort import Sort
 from utils.utils import map_label, check_image_size, draw_text, check_legit_plate, \
     gettime, compute_color, argmax, BGR_COLORS, VEHICLES, crop_expanded_plate, Vehicle
-from ppocr_onnx import DetAndRecONNXPipeline as PlateReader
+from paddleocr import PaddleOCR
 # from ultralytics.utils.checks import check_requirements
 
 
@@ -108,10 +108,10 @@ class TrafficCam():
         self.plate_detector = YOLO(opts.plate_weight, task='detect')
         self.read_plate = opts.read_plate
         if self.read_plate:
-            self.plate_reader = PlateReader(
-                text_det_onnx_model="weights/ppocrv4/ch_PP-OCRv4_det_infer.onnx",
-                text_rec_onnx_model="weights/ppocrv4/ch_PP-OCRv4_rec_infer.onnx",
-                box_thresh=0.6)
+            self.ocr = PaddleOCR(
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False)
         self.ocr_thres = opts.ocr_thres
 
         # DeepSort Tracking
@@ -129,17 +129,17 @@ class TrafficCam():
         self.save = opts.save
 
     def extract_plate(self, plate_image):
-        results = self.plate_reader.detect_and_ocr(plate_image)
+        results = self.ocr.predict(input=plate_image)
         if len(results) > 0:
-            plate_info = ''
-            conf = []
-            for result in results:
-                plate_info += result.text + ' '
-                conf.append(result.score)
-            conf = sum(conf) / len(conf)
-            return re.sub(r'[^A-Za-z0-9\-.]', '', plate_info), conf
+            plate_info = " ".join(results[0].get('rec_texts', []))
+            rec_scores = results[0].get('rec_scores', [])
+            conf = sum(rec_scores) / len(rec_scores) if rec_scores else 0.0
+            plate_info = re.sub(r'[^A-Za-z0-9\-.]', '', plate_info)
+            if plate_info and len(plate_info) > 2 and plate_info[0].isalpha() and plate_info[2] == 'C':
+                plate_info = plate_info[:2] + '0' + plate_info[3:]
+            return plate_info, conf
         else:
-            return '', 0
+            return '', 0.0
 
     def init_tracker(self):
         """
@@ -218,8 +218,8 @@ class TrafficCam():
                     conf=self.opts.vconf)[0]
                 # print(f"Inference time: {time() - t1}")
                 vehicle_boxes = vehicle_detection.boxes
-                # vehicle_xyxy = vehicle_boxes.xyxy
-                # vehicle_labels = vehicle_boxes.cls
+                vehicle_xyxy = vehicle_boxes.xyxy
+                vehicle_labels = vehicle_boxes.cls
                 try:
                     if self.deepsort:
                         outputs = self.tracker.update(vehicle_boxes.cpu().xywh,
@@ -246,15 +246,15 @@ class TrafficCam():
                     cv2.rectangle(
                         displayed_frame, src_point, dst_point, color, 1)
 
-                # for index, box in enumerate(vehicle_xyxy):
-                #     if box is None:
-                #         continue
-                #     label_name = map_label(int(vehicle_labels[index]), VEHICLES[self.lang])
-                #     box = box.cpu().numpy().astype(int)
-                #     draw_text(img=displayed_frame, text=label_name,
-                #               pos=(box[0], box[1]),
-                #               text_color=self.color["blue"],
-                #               text_color_bg=self.color["green"])
+                for index, box in enumerate(vehicle_xyxy):
+                    if box is None:
+                        continue
+                    label_name = map_label(int(vehicle_labels[index]), VEHICLES[self.lang])
+                    box = box.cpu().numpy().astype(int)
+                    draw_text(img=displayed_frame, text=label_name,
+                              pos=(box[0], box[1]),
+                              text_color=self.color["blue"],
+                              text_color_bg=self.color["green"])
 
                 """
                 --------------- PLATE RECOGNITION ---------------

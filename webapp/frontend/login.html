@@ -5,20 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - TonAI Vision</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body class="flex items-center justify-center h-screen">
-  <video autoplay muted loop id="bg-video">
-    <source src="static/mylivewallpapers.mp4" type="video/mp4">
-  </video>
-  <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-sm">
+  <div class="p-8 rounded-lg shadow-lg w-full max-w-sm glass">
     <div class="flex justify-center mb-6">
       <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-16 w-16">
     </div>
-    <h2 class="text-2xl font-bold text-center text-white mb-6">TonAI Vision Login</h2>
+    <h2 class="text-2xl font-bold text-center mb-6">TonAI Vision Login</h2>
     <form id="login-form" class="space-y-4">
-      <input id="username" type="text" placeholder="Username" class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none" required>
-      <input id="password" type="password" placeholder="Password" class="w-full p-2 rounded bg-gray-700 text-white focus:outline-none" required>
+      <input id="username" type="text" placeholder="Username" class="w-full p-2 rounded glass focus:outline-none" required>
+      <input id="password" type="password" placeholder="Password" class="w-full p-2 rounded glass focus:outline-none" required>
       <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Login</button>
       <p id="login-error" class="text-red-500 text-sm text-center hidden">Invalid credentials</p>
     </form>

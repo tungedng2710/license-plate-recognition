@@ -16,7 +16,7 @@
 
 ## Prerequisite
 * Ubuntu 20.04 or later
-* 3.10 >= Python version >= 3.7
+* 3.12 >= Python version >= 3.9
 
 ## Overview
 **Update 11st August 2025**: PPOCRv5 and an Web App (beta version) for testing
@@ -27,7 +27,7 @@
 
 Both vehicle and plate detector based on the YOLOv8 model, please checkout the official repository [Ultralytics](https://github.com/ultralytics/ultralytics) to install environment for inference as well as training.
 
-For instant usage, there are two trained model for both detection tasks are put in the ```weights``` folder (You may have to check the default path in code). In addition, you can train the yolov8 with your custom dataset with several lines of code in the ```detectors/yolov8/train_yolov8.py``` file.
+For instant usage, there are two trained model for both detection tasks are put in the ```weights``` folder (You may have to check the default path in code). You can train Ultralytics YOLO on your custom dataset via the CLI using `scripts/train_yolov8.sh` or `python detectors/ultralytic_yolo/train_ultralytics.py`.
 
 As regards plate recognition, [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) is used to recognized the plate information. Currently, it is run by ONNXRuntime with TensorRT Execution Provider backend.
 
@@ -72,6 +72,29 @@ For quick testing
 python test_alpr.py --input_source <path to your image/video>
 ```
 
+## Train Ultralytics YOLO
+Train a detector directly from the CLI without editing Python files:
+
+```bash
+# Bash wrapper
+./scripts/train_yolov8.sh \
+  --data data/Peru_License_Plate/data.yaml \
+  --model yolov8n.yaml \
+  --epochs 200 --batch 16 --imgsz 320 --device 0
+
+# Or call the script with Python
+python detectors/ultralytic_yolo/train_ultralytics.py \
+  --data data/Peru_License_Plate/data.yaml \
+  --model yolov8n.yaml --epochs 200 --batch 16 --imgsz 320 --device 0
+```
+
+Arguments (common):
+- `--data`: path to `data.yaml` (e.g., `data/LP-11k/data.yaml`).
+- `--model`: YOLOv8 config or weights (e.g., `yolov8n.yaml`, `yolov8s.pt`).
+- `--epochs`, `--batch`, `--imgsz`: training hyperparameters.
+- `--device`: CUDA device id(s) or `cpu`.
+- `--project`, `--name`, `--exist-ok`, `--workers`, `--resume`, `--patience`, `--seed`.
+
 ## TonAI Computer Vision Hub
 Launch a modern interface for starting YOLOv9 training with live progress updates:
 
@@ -82,3 +105,16 @@ uvicorn backend.main:app --reload
 ```
 
 Open `http://localhost:8000` in your browser to configure the run, select datasets, and watch training progress.
+
+## Docker
+Build and run the web application in a container:
+```bash
+docker compose up --build
+```
+This command starts the FastAPI service on [http://localhost:8000](http://localhost:8000).
+
+To build and run the image manually:
+```bash
+docker build -t trafficcam .
+docker run -p 8000:8000 trafficcam
+```

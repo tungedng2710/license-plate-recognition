@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (username === 'admin' && password === 'admin') {
       localStorage.setItem('authenticated', 'true');
+      // Persist basic user identity for the User page
+      localStorage.setItem('userName', username);
+      if (!localStorage.getItem('userEmail')) {
+        localStorage.setItem('userEmail', `${username}@example.com`);
+      }
       window.location.href = 'index.html';
     } else {
       errorMsg.classList.remove('hidden');

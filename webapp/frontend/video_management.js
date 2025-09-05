@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const customInput = slot.querySelector('.custom-url');
     const startBtn = slot.querySelector('.start-stream');
     const stopBtn = slot.querySelector('.stop-stream');
-    const img = slot.querySelector('.video-stream');
+    const imgEl = slot.querySelector('.video-stream');
+    let currentSrc = '';
 
     Object.entries(cameras).forEach(([name, url]) => {
       const opt = document.createElement('option');
@@ -40,11 +41,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         url = customInput.value.trim();
       }
       if (!url) return;
-      img.src = `/api/video/stream?url=${encodeURIComponent(url)}`;
+      currentSrc = `/api/video?url=${encodeURIComponent(url)}`;
+      imgEl.src = currentSrc;
     });
 
     stopBtn.addEventListener('click', () => {
-      img.removeAttribute('src');
+      imgEl.src = '';
+      currentSrc = '';
     });
   });
 });

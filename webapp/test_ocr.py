@@ -1,11 +1,11 @@
 import os
 import cv2
 import re
-from ton_ocr import TonOCRPipeline
+# from ton_ocr import TonOCRPipeline
 from paddleocr import PaddleOCR
 from utils.utils import check_legit_plate
 
-PLATE_READER = TonOCRPipeline()
+# PLATE_READER = TonOCRPipeline()
 ocr = PaddleOCR(
     use_doc_orientation_classify=False,
     use_doc_unwarping=False,

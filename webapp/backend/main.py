@@ -1,50 +1,96 @@
-from fastapi import FastAPI, BackgroundTasks, UploadFile, File
+from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import Response, StreamingResponse
-from pydantic import BaseModel
+from fastapi.responses import StreamingResponse, Response
 from pathlib import Path
-import subprocess
-import re
-import os
-from threading import Lock
-from multiprocessing import Process
-import numpy as np
 import cv2
+import numpy as np
 import json
-import yaml
-import zipfile
-import shutil
 from types import SimpleNamespace
-from test_alpr import ALPR
-from backend.yolo_trainer.train import YOLOTrainer
+from typing import Optional
+from webapp.backend.alpr_tracker import ALPRTracker
+import platform
+import subprocess
+import shutil
+import os
+from typing import List
+try:
+    import psutil  # optional dependency
+except Exception:  # pragma: no cover
+    psutil = None
+import requests
 
 app = FastAPI()
+
+# Allow cross-origin usage of the API (useful when serving frontend elsewhere)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
-TRAIN_SCRIPT = BASE_DIR / "yolo_trainer" / "train.py"
-SYNC_SCRIPT = REPO_ROOT / "sync_with_minio.sh"
 RTSP_FILE = BASE_DIR / "rtsp_url.json"
-HD_SIZE = (1280, 720)
 
-with open(REPO_ROOT / "minio_config.json") as f:
-    MINIO_CFG = json.load(f)
-MINIO_ENDPOINT = MINIO_CFG["endpoint"]
-MINIO_ACCESS_KEY = MINIO_CFG["access_key"]
-MINIO_SECRET_KEY = MINIO_CFG["secret_key"]
-MINIO_BUCKET = MINIO_CFG["bucket"]
-
-# Initialize ALPR model
+# Initialize ALPR tracker (tracking + OCR)
 opts = SimpleNamespace(
     vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolov8s_640.pt"),
     plate_weight=str(REPO_ROOT / "weights" / "plate_yolov8n_320_2024.pt"),
+    dsort_weight=str(REPO_ROOT / "weights" / "deepsort" / "ckpt.t7"),
     vconf=0.6,
     pconf=0.25,
     ocr_thres=0.8,
     device="cpu",
+    deepsort=False,  # set True to use DeepSORT, else SORT
+    read_plate=True,
+    lang="en",  # follow main.py label mapping (car, bus, ...)
 )
-alpr_model = ALPR(opts)
+alpr_model = ALPRTracker(opts)
+
+
+def gen_frames(
+    url: str,
+    process: bool = False,
+    vconf: Optional[float] = None,
+    pconf: Optional[float] = None,
+):
+    cap = cv2.VideoCapture(url)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if process:
+            # Update thresholds dynamically if provided
+            if vconf is not None:
+                alpr_model.opts.vconf = float(vconf)
+            if pconf is not None:
+                alpr_model.opts.pconf = float(pconf)
+            frame = alpr_model.process_frame(frame)
+        _, buffer = cv2.imencode('.jpg', frame)
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+    cap.release()
+
+
+@app.get("/api/video")
+def video_stream(url: str):
+    return StreamingResponse(gen_frames(url, False), media_type="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.get("/api/alpr_stream")
+def alpr_stream(
+    url: str,
+    vconf: Optional[float] = None,
+    pconf: Optional[float] = None,
+):
+    return StreamingResponse(
+        gen_frames(url, True, vconf=vconf, pconf=pconf),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
 
 
 @app.get("/api/rtsp_urls")
@@ -55,257 +101,173 @@ def get_rtsp_urls():
     except Exception:
         return {}
 
-class TrainRequest(BaseModel):
-    dataset: str
-    batch: int
-    img_size: int
-    model: str
-    epochs: int
-
-def list_datasets() -> list[str]:
-    try:
-        subprocess.run(
-            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
-            check=True,
-            capture_output=True,
-        )
-        result = subprocess.run(
-            ["/usr/local/bin/mc", "ls", f"local/{MINIO_BUCKET}"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        datasets = []
-        for line in result.stdout.splitlines():
-            parts = line.strip().split()
-            if parts:
-                name = parts[-1].rstrip('/')
-                datasets.append(name)
-        return datasets
-    except Exception:
-        return []
-
-@app.get("/api/datasets")
-def get_datasets():
-    return {"datasets": list_datasets()}
-
-def dataset_stats(dataset_name: str) -> dict:
-    try:
-        subprocess.run(
-            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
-            check=True,
-            capture_output=True,
-        )
-        stats = {}
-        for split in ["train", "val", "test"]:
-            result = subprocess.run(
-                ["/usr/local/bin/mc", "ls", f"local/{MINIO_BUCKET}/{dataset_name}/{split}/images"],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            count = len([line for line in result.stdout.splitlines() if line.strip()])
-            stats[split] = count
-
-        # Retrieve class names from data.yaml if available
-        try:
-            yaml_res = subprocess.run(
-                ["/usr/local/bin/mc", "cat", f"local/{MINIO_BUCKET}/{dataset_name}/data.yaml"],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            data_yaml = yaml.safe_load(yaml_res.stdout)
-            names = data_yaml.get("names", []) if isinstance(data_yaml, dict) else []
-            stats["classes"] = len(names)
-            stats["tags"] = names
-        except Exception:
-            stats["classes"] = 0
-            stats["tags"] = []
-
-        return stats
-    except Exception:
-        return {"train": 0, "val": 0, "test": 0, "classes": 0, "tags": []}
-
-
-@app.get("/api/datasets/{dataset_name}/stats")
-def get_dataset_stats(dataset_name: str):
-    return dataset_stats(dataset_name)
-
-
-@app.get("/api/datasets/{dataset_name}/thumbnail")
-def get_dataset_thumbnail(dataset_name: str):
-    try:
-        subprocess.run(
-            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
-            check=True,
-            capture_output=True,
-        )
-        ls_res = subprocess.run(
-            ["/usr/local/bin/mc", "ls", f"local/{MINIO_BUCKET}/{dataset_name}/train/images"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        first_file = None
-        for line in ls_res.stdout.splitlines():
-            parts = line.strip().split()
-            if parts:
-                first_file = parts[-1]
-                break
-        if not first_file:
-            return Response(status_code=404)
-        cat_res = subprocess.run(
-            ["/usr/local/bin/mc", "cat", f"local/{MINIO_BUCKET}/{dataset_name}/train/images/{first_file}"],
-            check=True,
-            capture_output=True,
-        )
-        suffix = Path(first_file).suffix.lower()
-        media_type = "image/png" if suffix == ".png" else "image/jpeg"
-        return Response(content=cat_res.stdout, media_type=media_type)
-    except Exception:
-        return Response(status_code=404)
-
-
-@app.post("/api/datasets/upload")
-async def upload_dataset(file: UploadFile = File(...)):
-    tmp_dir = Path("/tmp")
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    tmp_zip = tmp_dir / file.filename
-    with open(tmp_zip, "wb") as f:
-        f.write(await file.read())
-
-    extract_dir = tmp_dir / Path(file.filename).stem
-    with zipfile.ZipFile(tmp_zip, "r") as z:
-        z.extractall(extract_dir)
-
-    try:
-        subprocess.run(
-            ["/usr/local/bin/mc", "alias", "set", "local", MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY],
-            check=True,
-            capture_output=True,
-        )
-        subprocess.run(
-            ["/usr/local/bin/mc", "cp", "--recursive", str(extract_dir), f"local/{MINIO_BUCKET}/{extract_dir.name}"],
-            check=True,
-            capture_output=True,
-        )
-    except Exception:
-        pass
-    finally:
-        shutil.rmtree(extract_dir, ignore_errors=True)
-        try:
-            tmp_zip.unlink()
-        except Exception:
-            pass
-
-    return {"status": "uploaded"}
-
-
-training_progress = 0
-training_running = False
-progress_lock = Lock()
-
-
-def set_progress(value: int, running: bool | None = None):
-    global training_progress, training_running
-    with progress_lock:
-        training_progress = value
-        if running is not None:
-            training_running = running
-
-
-@app.get("/api/progress")
-def get_progress():
-    with progress_lock:
-        return {"progress": training_progress, "running": training_running}
-
-def _train_worker(model_path: str, dataset_yaml: Path, epochs: int, img_size: int, batch: int) -> None:
-    trainer = YOLOTrainer(model_path=str(model_path), data_path=str(dataset_yaml))
-    trainer.train(
-        epochs=int(epochs),
-        imgsz=int(img_size),
-        batch=int(batch),
-        device="0",
-        pretrained=False,
-        resume=False,
-        cache=False,
-        cos_lr=False,
-        auto_set_name=True,
-    )
-
-
-def run_training(req: TrainRequest):
-    dataset_yaml = REPO_ROOT / "data" / req.dataset / "data.yaml"
-    model_path = f"{BASE_DIR}/yolo_trainer/weights/{req.model}.pt"
-
-    set_progress(0, True)
-    p = Process(
-        target=_train_worker,
-        args=(model_path, dataset_yaml, req.epochs, req.img_size, req.batch),
-    )
-    p.start()
-    p.join()
-    set_progress(100, False)
-    
-
-@app.post("/api/train")
-def train(req: TrainRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(run_training, req)
-    return {"status": "started"}
-
 
 @app.post("/api/alpr")
 async def alpr(file: UploadFile = File(...)):
     data = await file.read()
     img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-    alpr_model.vehicles = []
-    result = alpr_model(img)
+    result = alpr_model.process_image(img)
     _, buffer = cv2.imencode('.jpg', result)
     return Response(content=buffer.tobytes(), media_type="image/jpeg")
 
 
-@app.get("/api/video/stream")
-def video_stream(url: str):
-    def generate():
-        cap = cv2.VideoCapture(url)
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame = cv2.resize(frame, HD_SIZE)
-            _, buffer = cv2.imencode('.jpg', frame)
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
-            )
-        cap.release()
+ # Serve frontend after registering API routes so it doesn't shadow them
 
-    return StreamingResponse(
-        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
+
+# Chatbot streaming proxy to Ollama-compatible API (local Ollama)
+DEFAULT_OLLAMA_URL = "http://0.0.0.0:7860/api/generate"
+
+
+@app.post("/api/chat")
+def chat(payload: dict):
+    prompt: str = payload.get("prompt", "").strip()
+    model: Optional[str] = payload.get("model") or "tonai_chat"
+    url: str = payload.get("url") or DEFAULT_OLLAMA_URL
+    image_path: Optional[str] = payload.get("image_path")
+
+    if not prompt:
+        return Response(content="Prompt is required", status_code=400)
+
+    def stream():
+        req_payload = {"model": model, "prompt": prompt}
+        if image_path:
+            try:
+                with open(image_path, "rb") as f:
+                    import base64
+                    req_payload["images"] = [base64.b64encode(f.read()).decode("utf-8")]
+            except Exception:
+                pass
+        try:
+            with requests.post(url, json=req_payload, stream=True, timeout=60) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines(decode_unicode=True):
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                        chunk = data.get("response", "")
+                    except Exception:
+                        chunk = ""
+                    if chunk:
+                        yield chunk
+        except Exception as e:
+            # Gracefully stream an error message instead of 500ing the request
+            msg = f"[chatbot error] {str(e)}"
+            yield msg
+
+    return StreamingResponse(stream(), media_type="text/plain")
+
+
+@app.get("/api/chat")
+def chat_info():
+    """Friendly GET handler to avoid 405 when opening /api/chat in a browser."""
+    message = (
+        "Chat endpoint is ready. Use POST with JSON to /api/chat: "
+        '{"prompt": "your message", "model": "tonai_chat"}'
     )
+    return Response(content=message, media_type="text/plain")
 
 
-@app.get("/api/alpr/stream")
-def alpr_stream(url: str):
-    def generate():
-        cap = cv2.VideoCapture(url)
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            alpr_model.vehicles = []
-            frame = alpr_model(frame)
-            frame = cv2.resize(frame, HD_SIZE)
-            _, buffer = cv2.imencode('.jpg', frame)
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
-            )
-        cap.release()
+@app.head("/api/chat")
+def chat_head():
+    return Response()
 
-    return StreamingResponse(
-        generate(), media_type="multipart/x-mixed-replace; boundary=frame"
-    )
 
+@app.get("/api/system_info")
+def system_info():
+    """Return basic system information (OS, CPU, RAM, GPU).
+
+    Uses optional psutil if available; otherwise falls back to /proc and platform.
+    """
+    info = {}
+
+    # OS and Python
+    info["os"] = {
+        "system": platform.system(),
+        "release": platform.release(),
+        "version": platform.version(),
+        "machine": platform.machine(),
+        "python": platform.python_version(),
+    }
+
+    # CPU
+    cpu = {
+        "cores_logical": os.cpu_count() or 0,
+    }
+    # Try to get CPU model name (Linux)
+    try:
+        if platform.system() == "Linux":
+            with open("/proc/cpuinfo", "r") as f:
+                for line in f:
+                    if line.lower().startswith("model name"):
+                        cpu["model"] = line.split(":", 1)[1].strip()
+                        break
+    except Exception:
+        pass
+    # Physical cores via psutil if present
+    try:
+        if psutil is not None:
+            cpu["cores_physical"] = psutil.cpu_count(logical=False)
+            cpu["utilization_percent"] = psutil.cpu_percent(interval=0.1)
+    except Exception:
+        pass
+    info["cpu"] = cpu
+
+    # RAM
+    mem = {}
+    try:
+        if psutil is not None:
+            vm = psutil.virtual_memory()
+            mem = {
+                "total_gb": round(vm.total / (1024**3), 2),
+                "available_gb": round(vm.available / (1024**3), 2),
+                "used_gb": round(vm.used / (1024**3), 2),
+                "percent": vm.percent,
+            }
+        else:
+            # Fallback for Linux
+            if platform.system() == "Linux":
+                total_kb = available_kb = None
+                with open("/proc/meminfo", "r") as f:
+                    for line in f:
+                        if line.startswith("MemTotal:"):
+                            total_kb = int(line.split()[1])
+                        elif line.startswith("MemAvailable:"):
+                            available_kb = int(line.split()[1])
+                if total_kb:
+                    mem["total_gb"] = round(total_kb / (1024**2), 2)
+                if available_kb is not None and total_kb:
+                    mem["available_gb"] = round(available_kb / (1024**2), 2)
+                    mem["used_gb"] = round((total_kb - available_kb) / (1024**2), 2)
+    except Exception:
+        pass
+    info["ram"] = mem
+
+    # GPU via nvidia-smi if available
+    gpus: List[dict] = []
+    if shutil.which("nvidia-smi"):
+        try:
+            cmd = [
+                "nvidia-smi",
+                "--query-gpu=name,memory.total,memory.used,driver_version",
+                "--format=csv,noheader,nounits",
+            ]
+            out = subprocess.check_output(cmd, text=True, timeout=2)
+            for line in out.strip().splitlines():
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) >= 4:
+                    name, mem_total, mem_used, driver = parts[:4]
+                    gpus.append({
+                        "name": name,
+                        "memory_total_mb": int(float(mem_total)),
+                        "memory_used_mb": int(float(mem_used)),
+                        "driver": driver,
+                    })
+        except Exception:
+            pass
+    info["gpus"] = gpus
+
+    return info
+
+# Keep this last so it doesn't intercept /api/* routes
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

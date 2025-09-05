@@ -1,9 +1,35 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const toggleBtn = document.getElementById('toggle-sidebar');
-  const sidebar = document.querySelector('.sidebar');
+  const userBtn = document.querySelector('.user-settings');
+  const userPopup = document.getElementById('user-popup');
 
-  toggleBtn.addEventListener('click', () => {
-    const isCollapsed = sidebar.classList.toggle('collapsed');
-    toggleBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-right"></i>' : '<i class="fas fa-chevron-left"></i>';
-  });
+  if (userBtn && userPopup) {
+    // Populate the popup content dynamically
+    const displayName = (userBtn.querySelector('.link-text')?.textContent || 'User').trim();
+    const email = (localStorage.getItem('userEmail') || `${displayName.toLowerCase()}@example.com`).trim();
+
+    userPopup.innerHTML = `
+      <div class="user-info">
+        <div class="label">User</div>
+        <div class="value" id="user-username">${displayName}</div>
+        <div class="label">Name</div>
+        <div class="value" id="user-name">${displayName}</div>
+        <div class="label">Email</div>
+        <div class="value" id="user-email">${email}</div>
+      </div>
+      <div class="user-actions">
+        <button id="logout-btn" class="logout-btn">Logout</button>
+      </div>
+    `;
+
+    userBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      userPopup.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!userPopup.contains(e.target) && !userBtn.contains(e.target)) {
+        userPopup.classList.remove('show');
+      }
+    });
+  }
 });
