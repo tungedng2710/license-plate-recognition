@@ -77,7 +77,7 @@ Train a detector directly from the CLI without editing Python files:
 
 ```bash
 # Bash wrapper
-./scripts/train_yolov8.sh \
+./scripts/train_yolo.sh \
   --data data/Peru_License_Plate/data.yaml \
   --model yolov8n.yaml \
   --epochs 200 --batch 16 --imgsz 320 --device 0
