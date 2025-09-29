@@ -22,11 +22,11 @@ BGR_COLORS = {
 }
 VEHICLES = {
     'vi': ['xe dap', 'xe buyt', 'o to', 'xe may', 'xe tai'],
-    'en': ['bike', 'bus', 'car', 'motorbike', 'truck'],
+    'en': ['bicycle', 'bus', 'car', 'motorbike', 'truck'],
     'es': ['bicicleta', 'autobus', 'auto', 'moto', 'camion'],
     'fr': ['velo', 'bus', 'voiture', 'moto', 'camion'],
-    'coco': ['bus', 'car', 'motorcycle', 'truck', 'bicycle'],
-    'coco_vi': ['xe buyt', 'o to', 'xe may', 'xe tai', 'xe dap']
+    'coco': ['bicycle', 'bus', 'car', 'motorcycle', 'truck'],
+    'coco_vi': ['xe dap', 'xe buyt', 'o to', 'xe may', 'xe tai']
 }
 COLOR_PALETTE = np.random.uniform(0, 255, size=(len(VEHICLES['en']), 3))
 

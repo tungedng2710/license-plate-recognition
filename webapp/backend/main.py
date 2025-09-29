@@ -38,7 +38,7 @@ RTSP_FILE = BASE_DIR / "rtsp_url.json"
 
 # Initialize ALPR tracker (tracking + OCR) using shared core
 opts = SimpleNamespace(
-    vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolov8s_640.pt"),
+    vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolo12s_640.pt"),
     plate_weight=str(REPO_ROOT / "weights" / "plate_yolov8n_320_2024.pt"),
     dsort_weight=str(REPO_ROOT / "weights" / "deepsort" / "ckpt.t7"),
     vconf=0.6,

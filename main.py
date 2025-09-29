@@ -30,8 +30,8 @@ def get_args():
         default="test_urban.mp4",
         help="path to video, 0 for webcam")
     parser.add_argument("--vehicle_weight", type=str,
-                        default="weights/vehicle_yolov8s_640.pt",
-                        help="path to the yolov8 weight of vehicle detector")
+                        default="weights/vehicle_yolo12s_640.pt",
+                        help="path to the YOLO weight of vehicle detector")
     parser.add_argument("--plate_weight", type=str,
                         default="weights/plate_yolov8n_320_2024.pt",
                         help="path to the yolov8 weight of plate detector")
