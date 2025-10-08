@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const streamInput = document.getElementById('stream-url');
   const cameraSelect = document.getElementById('camera-select');
+  const modeSelect = document.getElementById('stream-mode');
   const readPlateToggle = document.getElementById('read-plate');
   const startBtn = document.getElementById('start-stream');
   const pauseBtn = document.getElementById('pause-stream');
@@ -10,16 +11,47 @@ document.addEventListener('DOMContentLoaded', () => {
   const vconfVal = document.getElementById('vconf-val');
   const pconfVal = document.getElementById('pconf-val');
   const streamImg = document.getElementById('alpr-stream');
+  const controlPanel = document.querySelector('.control-panel');
   const placeholder = document.getElementById('stream-placeholder');
   const placeholderText = placeholder ? placeholder.querySelector('p') : null;
   const CUSTOM_OPTION_VALUE = '__custom';
 
-  if (!streamInput || !cameraSelect || !startBtn || !pauseBtn || !stopBtn || !streamImg || !readPlateToggle) {
+  if (!streamInput || !cameraSelect || !startBtn || !pauseBtn || !stopBtn || !streamImg || !readPlateToggle || !modeSelect) {
     return;
   }
 
   let currentSrc = '';
   let paused = false;
+
+  function getSelectedMode() {
+    return modeSelect.value || 'alpr';
+  }
+
+  function applyModeState() {
+    const preview = getSelectedMode() === 'preview';
+    if (controlPanel) {
+      controlPanel.classList.toggle('preview-mode', preview);
+    }
+    if (vconf) {
+      vconf.disabled = preview;
+    }
+    if (pconf) {
+      pconf.disabled = preview;
+    }
+    if (readPlateToggle) {
+      readPlateToggle.disabled = preview;
+    }
+  }
+
+  function stopStream(message = 'No stream running') {
+    if (streamImg) {
+      streamImg.removeAttribute('src');
+    }
+    currentSrc = '';
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+    showPlaceholder(message);
+  }
 
   function showPlaceholder(message) {
     if (!placeholder) {
@@ -83,18 +115,21 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const mode = getSelectedMode();
+    const preview = mode === 'preview';
     const params = new URLSearchParams({ url });
-    if (vconf) {
+    if (!preview && vconf) {
       params.set('vconf', String(vconf.value));
     }
-    if (pconf) {
+    if (!preview && pconf) {
       params.set('pconf', String(pconf.value));
     }
-    if (readPlateToggle) {
+    if (!preview && readPlateToggle) {
       params.set('read_plate', String(readPlateToggle.checked));
     }
 
-    const src = `/api/alpr_stream?${params.toString()}`;
+    const endpoint = preview ? '/api/video' : '/api/alpr_stream';
+    const src = `${endpoint}?${params.toString()}`;
     paused = false;
     pauseBtn.textContent = 'Pause';
     showStream(src);
@@ -117,28 +152,32 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   stopBtn.addEventListener('click', () => {
-    if (!currentSrc) {
-      showPlaceholder('No stream running');
-      return;
-    }
-    streamImg.removeAttribute('src');
-    currentSrc = '';
-    paused = false;
-    pauseBtn.textContent = 'Pause';
-    showPlaceholder('No stream running');
+    const preview = getSelectedMode() === 'preview';
+    const message = preview
+      ? 'Camera preview stopped. Start to view the camera feed.'
+      : 'No stream running';
+    stopStream(message);
   });
 
   streamImg.addEventListener('error', () => {
     if (!currentSrc) {
       return;
     }
-    showPlaceholder('Unable to load stream. Check the URL and try again.');
-    streamImg.removeAttribute('src');
-    currentSrc = '';
-    paused = false;
-    pauseBtn.textContent = 'Pause';
+    stopStream('Unable to load stream. Check the URL and try again.');
   });
 
+  if (modeSelect) {
+    modeSelect.addEventListener('change', () => {
+      applyModeState();
+      const preview = getSelectedMode() === 'preview';
+      const message = preview
+        ? 'Preview mode selected. Start to view the camera feed.'
+        : 'ALPR mode selected. Start to begin detection.';
+      stopStream(message);
+    });
+  }
+
+  applyModeState();
   showPlaceholder('No stream running');
 
   async function loadCameraPresets() {

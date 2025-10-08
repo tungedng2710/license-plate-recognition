@@ -122,6 +122,10 @@ body {
   gap: 18px;
 }
 
+.control-panel.preview-mode .alpr-only {
+  display: none;
+}
+
 .control-panel h2 {
   margin: 0;
   font-size: 1.1rem;
