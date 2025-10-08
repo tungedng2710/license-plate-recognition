@@ -1,481 +1,300 @@
-/* Fonts: Use Coves for all text; Azonix for brand */
-@import url('https://fonts.cdnfonts.com/css/coves');
-@import url('https://fonts.cdnfonts.com/css/azonix');
-
-html {
-  box-sizing: border-box;
-  height: 100%;
+:root {
+  color-scheme: light;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --border: #d4dbe5;
+  --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-*, *:before, *:after {
-  box-sizing: inherit;
+* {
+  box-sizing: border-box;
 }
 
 body {
-  font-family: 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   margin: 0;
-  color: #001f3f;
-  height: 100vh;
-  /* Remove page background: plain white */
-  background-color: #ffffff;
+  min-height: 100vh;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-family: inherit;
 }
 
-/* Prevent accidental horizontal scrollbars due to background transforms */
-html, body { overflow-x: hidden; }
+.app-shell {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
 
-/* Background blobs removed */
+.app-header {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-/* Global glass buttons */
-button {
-  background: rgba(255, 255, 255, 0.18) !important;
-  color: #001f3f !important;
-  border: 1px solid rgba(15, 23, 42, 0.15) !important; /* light border */
-  padding: 0.5rem 1rem;
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.app-brand h1 {
+  margin: 0;
+  font-size: 1.9rem;
+}
+
+.tagline {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.header-note {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.app-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.stream-panel {
+  position: relative;
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 16px;
+  min-height: 360px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.stream-view {
+  width: 100%;
   border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #0f172a;
+  object-fit: contain;
+  display: none;
+}
+
+.stream-placeholder {
+  position: absolute;
+  inset: 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  background: repeating-linear-gradient(135deg, rgba(241, 245, 249, 0.7) 0px, rgba(241, 245, 249, 0.7) 12px, rgba(226, 232, 240, 0.7) 12px, rgba(226, 232, 240, 0.7) 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.control-panel {
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.control-panel.preview-mode .alpr-only {
+  display: none;
+}
+
+.control-panel h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.control-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+input[type="text"],
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: var(--surface);
+}
+
+input[type="text"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+input[type="text"].input-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+input[type="range"] {
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.2);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
   cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
   font-weight: 600;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 6px 18px rgba(2, 8, 23, 0.06);
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
-  position: relative; /* for liquid effect */
-  overflow: hidden;   /* clip liquid */
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
 }
 
 button:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-  border-color: rgba(15, 23, 42, 0.25) !important;
+  background: var(--accent-strong);
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(2, 8, 23, 0.1);
 }
 
 button:active {
   transform: translateY(0);
-  box-shadow: 0 6px 18px rgba(2, 8, 23, 0.06);
 }
 
-button.rounded {
-  border-radius: 12px;
+button:nth-child(2) {
+  background: #f59e0b;
+  box-shadow: 0 10px 20px rgba(245, 158, 11, 0.22);
 }
 
-/* Neutralize glass backgrounds across the app */
-.glass {
-  background: transparent !important;
-  border: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
+button:nth-child(2):hover {
+  background: #ea8a07;
 }
 
-/* Sidebar: more transparent glass effect */
-.sidebar.glass {
-  /* Light gray translucent gradient with glass blur */
-  background: linear-gradient(180deg,
-              rgba(240, 243, 248, 0.55) 0%,
-              rgba(233, 237, 243, 0.40) 35%,
-              rgba(233, 237, 243, 0.32) 100%) !important;
-  backdrop-filter: blur(14px) saturate(1.15) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(1.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.55) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
-              0 10px 30px rgba(2, 8, 23, 0.06) !important;
-  position: relative;
-  overflow: hidden;
+button:nth-child(3) {
+  background: #ef4444;
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.22);
 }
 
-/* Subtle light sheen for the sidebar glass */
-.sidebar.glass::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg,
-                rgba(255,255,255,0.35) 0%,
-                rgba(255,255,255,0.10) 35%,
-                rgba(255,255,255,0.00) 100%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Ensure sidebar content sits above the sheen */
-.sidebar.glass > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* top-bar removed (unused) */
-
-.layout {
-  display: flex;
-  flex: 1;
-  min-height: 100vh; /* Ensure full height for centering */
-  position: relative;
-  z-index: 1; /* keep above background blobs */
-}
-
-.login-btn {
-  padding: 0.5rem 1rem;
-}
-
-.sidebar {
-  width: 200px;
-  padding: 20px;
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  height: 100vh; /* Ensure it fits the screen */
-  overflow-y: auto; /* Scroll if content exceeds viewport */
-  display: flex;
-  flex-direction: column;
-  z-index: 10;
-}
-
-.sidebar a {
-  display: flex;
-  align-items: center;
-  color: #001f3f;
-  padding: 10px;
-  text-decoration: none;
-  border-radius: 5px;
-  margin-bottom: 10px;
-  gap: 10px;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid transparent;
-  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.sidebar a.active, .sidebar a:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Liquid blurred border effect on sidebar items */
-.sidebar a::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-sizing: border-box;
-  padding: 1.5px; /* border thickness */
-  background:
-    radial-gradient(100px 100px at 20% 30%, rgba(59,130,246,0.45), transparent 60%),
-    radial-gradient(100px 100px at 80% 70%, rgba(99,102,241,0.4), transparent 60%),
-    radial-gradient(120px 120px at 40% 90%, rgba(56,189,248,0.35), transparent 60%);
-  filter: blur(10px) saturate(1.1);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  /* Show only the border ring */
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-}
-
-.sidebar a:hover::before,
-.sidebar a:focus-visible::before {
-  opacity: 1;
-  animation: liquid-wave 2.2s ease-in-out infinite alternate;
-}
-
-.user-settings { margin-top: auto; }
-
-.main-content {
-  flex-grow: 1;
-  padding: 20px 20px 20px 0; /* remove left gap next to sidebar */
-  /* Use viewport height to enable vertical centering */
-  min-height: 100vh;
-  overflow-y: auto; /* Allow scrolling for content that overflows */
-  padding-top: 20px;
-  /* Keep the content clear of the fixed sidebar with an external offset */
-  margin-left: 200px;       /* equalize: 20px inner padding == left gap */
-  /* Center all page content horizontally */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Center container width for all direct sections */
-.main-content > * {
-  width: 100%;
-  max-width: 1200px;
-}
-
-/* Modern cards and grids for settings/user pages */
-.cards-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 900px) {
-  .cards-grid { grid-template-columns: 1fr; }
-}
-
-.card {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 6px 18px rgba(2,8,23,0.06);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.muted { color: #64748b; font-size: 0.9rem; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-.row { display:flex; align-items:center; justify-content:space-between; gap: 12px; }
-
-/* Responsive layout to fit any screen ratio */
-@media (max-width: 1200px) {
-  .main-content > * { max-width: 1000px; }
+button:nth-child(3):hover {
+  background: #dc2626;
 }
 
 @media (max-width: 1024px) {
-  .sidebar { width: 160px; padding: 16px; }
-  .main-content { margin-left: 160px; padding-left: 0; }
+  .app-shell {
+    padding: 24px;
+  }
+
+  .app-main {
+    grid-template-columns: 1fr;
+  }
+
+  .control-panel {
+    position: static;
+  }
 }
 
-@media (max-width: 768px) {
-  .sidebar { width: 64px; padding: 12px 8px; }
-  .sidebar a .link-text, .sidebar a#logo-link h1 { display: none; }
-  .sidebar a { justify-content: center; }
-  .main-content { margin-left: 64px; padding: 16px 16px 16px 0; }
-  #home-page .title { font-size: 2.25rem; }
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .app-header {
+    padding: 18px;
+  }
+
+  .stream-panel {
+    padding: 12px;
+    min-height: 300px;
+  }
+
+  .stream-placeholder {
+    inset: 12px;
+  }
+
+  .control-panel {
+    padding: 18px;
+    gap: 16px;
+  }
 }
-
-@media (max-width: 480px) {
-  .main-content { padding: 12px 12px 12px 0; }
-}
-
-
-#home-page {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  overflow: hidden;
-  /* Fill the visible area minus main-content vertical padding (20px top/bottom) */
-  min-height: calc(100vh - 40px);
-}
-
-/* Remove any overlays/gradients to keep the page light */
-#home-page::before { content: none; }
-
-#home-page .content {
-  z-index: 1;
-  text-align: center;
-}
-
-#home-page .title {
-  font-size: 6rem;
-  font-weight: 700;
-  font-family: 'Azonix', 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: #001f3f;
-  letter-spacing: 0.1em;
-  /* Remove visual/hover effects for a static title */
-  text-shadow: none;
-  transition: none;
-}
-
-#home-page .title:hover {
-  text-shadow: none;
-  transform: none;
-}
-
-#home-page .buttons {
-  margin-top: 20px;
-}
-
-#home-page .buttons button {
-  margin: 0 10px;
-}
-
-/* Make hero buttons on the landing section larger */
-.hero-btn {
-  font-size: 1.25rem;        /* larger text */
-  padding: 0.9rem 1.6rem;    /* larger click area */
-  border-radius: 14px;       /* slightly rounder */
-}
-
-/* Removed unused home-card styling */
-
-/* Headings use Coves as well */
-h1, h2, .title {
-  font-family: 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  letter-spacing: 0.06em;
-}
-
-/* Tighten page header spacing so sections fit neatly */
-.main-content h1.title {
-  margin-top: 0;
-  margin-bottom: 16px !important; /* override Tailwind mb-10 on pages */
-}
-
-/* Apply Azonix only to the sidebar brand title */
-.sidebar a#logo-link h1 {
-  font-family: 'Azonix', 'Coves', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  letter-spacing: 0.1em;
-}
-
-/* Remove decorative liquid hover effect on buttons */
-
-@keyframes liquid-wave {
-  0% { transform: translateX(-2%) translateY(0) scale(1); }
-  100% { transform: translateX(2%) translateY(-2%) scale(1.03); }
-}
-
-/* Removed unused bg-float animation */
-
-
-
-#projects-page .title {
-  font-size: 3rem;
-  font-weight: bold;
-  color: #001f3f;
-  text-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  margin-bottom: 40px;
-}
-
-#projects-page .project-cards {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-}
-
-#projects-page .project-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 300px;
-  height: 180px;
-  background-color: rgba(255, 255, 255, 0.6);
-  color: #001f3f;
-  border: 1px solid #cbd5e1;
-  border-radius: 50px;
-  text-decoration: none;
-  font-size: 1.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-
-#projects-page .project-card:hover {
-  background-color: rgba(255, 255, 255, 0.8);
-  transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-}
-
-/* Liquid glass overlay for project cards */
-#projects-page .project-card::before {
-  content: "";
-  position: absolute;
-  inset: -35%;
-  border-radius: inherit;
-  background:
-    radial-gradient(180px 140px at 20% 30%, rgba(59, 130, 246, 0.28), transparent 60%),
-    radial-gradient(180px 140px at 80% 70%, rgba(99, 102, 241, 0.25), transparent 60%),
-    radial-gradient(220px 180px at 40% 90%, rgba(56, 189, 248, 0.22), transparent 60%);
-  filter: blur(14px) saturate(1.05);
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  pointer-events: none;
-}
-
-#projects-page .project-card:hover::before {
-  opacity: 1;
-  animation: liquid-wave 3s ease-in-out infinite alternate;
-}
-
-/* Chatbot widget */
-.chatbot-fab {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.6);
-  color: #0f172a;
-  border: 1px solid rgba(15,23,42,0.12);
-  box-shadow: 0 10px 24px rgba(2,8,23,0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  cursor: pointer;
-  z-index: 50;
-}
-
-.chatbot-panel {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 360px;
-  height: 480px;
-  border-radius: 16px;
-  /* 50% transparent frosted glass */
-  background: rgba(255,255,255,0.5) !important;
-  border: 1px solid rgba(255,255,255,0.65) !important;
-  box-shadow: 0 20px 40px rgba(2,8,23,0.25) !important;
-  backdrop-filter: blur(16px) saturate(1.2) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 60;
-}
-
-.chatbot-panel.hidden { display: none; }
-
-.chatbot-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(15,23,42,0.12);
-}
-
-.chatbot-header .title {
-  font-weight: 700;
-  letter-spacing: 0.06em;
-}
-
-.chatbot-close {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.chatbot-messages {
-  flex: 1;
-  padding: 12px;
-  overflow-y: auto;
-}
-
-.chat-msg { margin-bottom: 10px; display: flex; }
-.chat-msg.user { justify-content: flex-end; }
-.chat-msg.bot { justify-content: flex-start; }
-.chat-msg .bubble {
-  max-width: 80%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(15,23,42,0.12);
-  box-shadow: 0 6px 18px rgba(2,8,23,0.06);
-}
-.chat-msg.user .bubble { background: rgba(59,130,246,0.1); }
-
-.chatbot-input { display: flex; gap: 8px; padding: 10px; border-top: 1px solid rgba(15,23,42,0.12); }
-.chatbot-input input { flex: 1; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(15,23,42,0.15); background: rgba(255,255,255,0.85); }
-.chatbot-input button { padding: 8px 12px; }

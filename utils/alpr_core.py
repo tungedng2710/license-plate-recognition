@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional
 import re
+import inspect
 
 import cv2
 import numpy as np
@@ -36,17 +37,32 @@ class ALPRCore:
     def __init__(self, opts):
         self.opts = opts
 
+        requested_device = getattr(self.opts, "device", "auto")
+        self.opts.device = self._resolve_device(requested_device)
+        self._is_cuda = str(self.opts.device).lower().startswith("cuda")
+
         # Detectors
         self.vehicle_detector = YOLO(self.opts.vehicle_weight, task="detect")
         self.plate_detector = YOLO(self.opts.plate_weight, task="detect")
+        try:
+            self.vehicle_detector.to(self.opts.device)
+            self.plate_detector.to(self.opts.device)
+        except Exception:
+            pass
 
         # OCR
         self.read_plate = bool(getattr(self.opts, "read_plate", True))
-        self.ocr = PaddleOCR(
+        ocr_kwargs = dict(
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,
         )
+        try:
+            if "use_gpu" in inspect.signature(PaddleOCR.__init__).parameters:
+                ocr_kwargs["use_gpu"] = self._is_cuda
+        except (ValueError, TypeError):
+            pass
+        self.ocr = PaddleOCR(**ocr_kwargs)
         self.ocr_thres: float = float(getattr(self.opts, "ocr_thres", 0.9))
 
         # Tracking
@@ -59,6 +75,20 @@ class ALPRCore:
         self.color = BGR_COLORS
         self.lang = getattr(self.opts, "lang", "en")
 
+    def _resolve_device(self, requested: Optional[str]) -> str:
+        if requested is None:
+            requested = "auto"
+        requested = str(requested).strip().lower()
+        if requested in {"auto", ""}:
+            return "cuda:0" if torch.cuda.is_available() else "cpu"
+        if requested.isdigit():
+            return f"cuda:{requested}" if torch.cuda.is_available() else "cpu"
+        if requested == "cuda":
+            return "cuda:0" if torch.cuda.is_available() else "cpu"
+        if requested.startswith("cuda") and not torch.cuda.is_available():
+            return "cpu"
+        return requested
+
     def _init_tracker(self) -> None:
         if self.deepsort:
             self.tracker = DeepSort(
@@ -70,7 +100,7 @@ class ALPRCore:
                 max_age=70,
                 n_init=3,
                 nn_budget=100,
-                use_cuda=torch.cuda.is_available(),
+                use_cuda=self._is_cuda,
             )
         else:
             self.tracker = Sort()
@@ -112,6 +142,14 @@ class ALPRCore:
         det_xyxy = boxes.xyxy.cpu().numpy() if len(boxes) else np.empty((0, 4))
         det_cls = boxes.cls.cpu().numpy().astype(int) if len(boxes) else np.empty((0,), dtype=int)
 
+        label_lookup = VEHICLES.get(self.lang, VEHICLES.get("en", []))
+
+        def resolve_label(cls_idx: int) -> str:
+            try:
+                return map_label(cls_idx, label_lookup)
+            except Exception:
+                return str(cls_idx)
+
         # Tracking
         try:
             if self.deepsort:
@@ -152,32 +190,46 @@ class ALPRCore:
 
             if det_xyxy.shape[0] > 0:
                 tb = np.array([float(x1), float(y1), float(x2), float(y2)])
-                best_iou, best_cls = 0.0, None
+                best_iou, best_idx = 0.0, None
                 for j in range(det_xyxy.shape[0]):
                     iou_val = _iou(tb, det_xyxy[j])
                     if iou_val > best_iou:
-                        best_iou, best_cls = iou_val, int(det_cls[j])
-                if best_cls is not None and best_iou > 0.1:
-                    try:
-                        labels = VEHICLES.get(self.lang, VEHICLES.get("en", []))
-                        det_label_for_track[tid] = map_label(best_cls, labels)
-                    except Exception:
-                        det_label_for_track[tid] = str(best_cls)
+                        best_iou, best_idx = iou_val, j
+                if best_idx is not None and best_iou > 0.1:
+                    label_text = resolve_label(int(det_cls[best_idx]))
+                    det_label_for_track[tid] = label_text
+                    v.vehicle_type = label_text
 
-            label_text = det_label_for_track.get(tid, f"ID {tid}")
-            try:
-                draw_text(
-                    img=displayed_frame,
-                    text=str(label_text),
-                    pos=(int(x1), int(y1)),
-                    text_color=self.color["blue"],
-                    text_color_bg=self.color["green"],
-                    font_scale=0.7,
-                    font_thickness=2,
-                )
-            except Exception:
-                pass
+        if det_xyxy.shape[0] > 0 and det_cls.size > 0:
+            for idx in range(det_xyxy.shape[0]):
+                box = det_xyxy[idx].astype(int)
+                label_text = resolve_label(int(det_cls[idx]))
+                try:
+                    draw_text(
+                        img=displayed_frame,
+                        text=str(label_text),
+                        pos=(int(box[0]), int(box[1])),
+                        text_color=self.color["blue"],
+                        text_color_bg=self.color["green"],
+                    )
+                except Exception:
+                    continue
 
+        for tid in in_frame_ids:
+            if tid not in det_label_for_track:
+                v = self.vehicles[tid]
+                label_text = v.vehicle_type if v.vehicle_type else f"ID {tid}"
+                x1, y1, x2, _ = v.bbox_xyxy.astype(int)
+                try:
+                    draw_text(
+                        img=displayed_frame,
+                        text=str(label_text),
+                        pos=(int(x1), int(y1)),
+                        text_color=self.color["blue"],
+                        text_color_bg=self.color["green"],
+                    )
+                except Exception:
+                    continue
         # Plate recognition
         if self.read_plate and in_frame_ids:
             active: List[Vehicle] = []
@@ -260,4 +312,3 @@ class ALPRCore:
     def process_image(self, img: np.ndarray) -> np.ndarray:
         self.reset()
         return self.process_frame(img)
-

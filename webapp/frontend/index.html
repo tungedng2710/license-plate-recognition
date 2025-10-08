@@ -3,48 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TonAI Computer Vision Hub</title>
-  <link rel="stylesheet" href="style.css?v=13">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <title>TonAI License Plate Recognition</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="layout">
-    <div class="sidebar glass">
-      <a href="#/home" id="logo-link" class="flex items-center my-4">
-        <img src="static/tonai_logo.png" alt="TonAI Logo" class="h-8 w-8 mr-2">
-        <h1 class="text-2xl font-bold">TonAI</h1>
-      </a>
-      <a href="#/home" id="home-link" class="active"><i class="fas fa-home"></i><span class="link-text">Home</span></a>
-      <a href="#/projects" id="projects-link"><i class="fas fa-folder"></i><span class="link-text">Projects</span></a>
-      <a href="https://github.com/tungedng2710/license-plate-recognition" target="_blank"><i class="fab fa-github"></i><span class="link-text">GitHub</span></a>
-      <a href="user.html" class="user-settings"><img src="https://avatars.githubusercontent.com/u/48611435?v=4"
-                alt="User Avatar" class="h-8 w-8 rounded-full mr-2"><span class="link-text">Edward</span></a>
-    </div>
-    <div class="main-content">
-      <div id="home-page" class="flex justify-center items-center">
-        <div class="content">
-          <h1 class="title">TonAI Vision</h1>
-          <div class="buttons">
-            <button id="start-btn" class="hero-btn">Let's Start</button>
-            <a href="https://tungedng2710.github.io/" target="_blank"><button class="hero-btn">About Us</button></a>
-          </div>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-brand">
+        <img src="static/tonai_logo.png" alt="TonAI Logo" class="brand-logo" />
+        <div>
+          <h1>TonAI Vision</h1>
+          <p class="tagline">Real-time license plate recognition</p>
         </div>
       </div>
-      <div id="projects-page" style="display: none;">
-        <h1 class="text-5xl font-bold mb-10 text-center title">Projects</h1>
-        <div class="project-cards">
-          <!-- <a href="alpr_upload.html" class="project-card">ALPR Upload</a> -->
-          <a href="alpr_stream.html" class="project-card">ALPR</a>
-          <a href="video_management.html" class="project-card">Cameras</a>
-          <a href="http://116.103.227.252:7866" target="_blank" class="project-card">OCR</a>
-          <!-- <a href="http://27.66.108.30:7861" target="_blank" class="project-card">Chatbot</a> -->
+    </header>
+
+    <main class="app-main">
+      <section class="stream-panel">
+        <img id="alpr-stream" alt="License plate detection preview" class="stream-view" />
+        <div class="stream-placeholder" id="stream-placeholder">
+          <p>No stream running</p>
         </div>
-      </div>
-    </div>
+      </section>
+
+      <section class="control-panel">
+        <h2>Stream Controls</h2>
+
+        <label class="control-label" for="camera-select">Camera Preset</label>
+        <select id="camera-select">
+          <option value="__custom" selected>Custom URL</option>
+        </select>
+
+        <label class="control-label" for="stream-url">Stream URL</label>
+        <input id="stream-url" type="text" placeholder="rtsp://username:password@ip:port/path" autocomplete="off" />
+
+        <label class="control-label" for="stream-mode">Stream Mode</label>
+        <select id="stream-mode">
+          <option value="alpr" selected>License plate recognition</option>
+          <option value="preview">Camera preview only</option>
+        </select>
+
+        <div class="control-group alpr-only">
+          <label class="control-label" for="vconf">Vehicle confidence <span id="vconf-val">0.60</span></label>
+          <input type="range" id="vconf" min="0" max="1" step="0.01" value="0.60" />
+        </div>
+
+        <div class="control-group alpr-only">
+          <label class="control-label" for="pconf">Plate confidence <span id="pconf-val">0.25</span></label>
+          <input type="range" id="pconf" min="0" max="1" step="0.01" value="0.25" />
+        </div>
+
+        <div class="control-toggle alpr-only">
+          <label class="toggle-label" for="read-plate">
+            <input type="checkbox" id="read-plate" checked />
+            <span>Read license plates</span>
+          </label>
+        </div>
+
+        <div class="button-row">
+          <button id="start-stream">Start</button>
+          <button id="pause-stream">Pause</button>
+          <button id="stop-stream">Stop</button>
+        </div>
+      </section>
+    </main>
   </div>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="auth.js"></script>
-  <script src="script.js"></script>
-  <script src="chatbot.js"></script>
+
+  <script src="alpr_stream.js"></script>
 </body>
 </html>

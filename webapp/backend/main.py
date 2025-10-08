@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse, Response
@@ -20,6 +20,8 @@ except Exception:  # pragma: no cover
     psutil = None
 import requests
 
+DEFAULT_DEVICE = os.environ.get("ALPR_DEVICE", "auto")
+
 app = FastAPI()
 
 # Allow cross-origin usage of the API (useful when serving frontend elsewhere)
@@ -34,7 +36,7 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
-RTSP_FILE = BASE_DIR / "rtsp_url.json"
+CAMERA_CONFIG_PATH = REPO_ROOT / "webapp" / "rtsp_url.json"
 
 # Initialize ALPR tracker (tracking + OCR) using shared core
 opts = SimpleNamespace(
@@ -44,7 +46,7 @@ opts = SimpleNamespace(
     vconf=0.6,
     pconf=0.25,
     ocr_thres=0.8,
-    device="cpu",
+    device=DEFAULT_DEVICE,
     deepsort=False,  # set True to use DeepSORT, else SORT
     read_plate=True,
     lang="en",  # follow main.py label mapping (car, bus, ...)
@@ -57,7 +59,11 @@ def gen_frames(
     process: bool = False,
     vconf: Optional[float] = None,
     pconf: Optional[float] = None,
+    read_plate: Optional[bool] = None,
 ):
+    if read_plate is not None:
+        alpr_model.read_plate = bool(read_plate)
+        setattr(alpr_model.opts, "read_plate", bool(read_plate))
     cap = cv2.VideoCapture(url)
     while True:
         ret, frame = cap.read()
@@ -86,20 +92,12 @@ def alpr_stream(
     url: str,
     vconf: Optional[float] = None,
     pconf: Optional[float] = None,
+    read_plate: Optional[bool] = None,
 ):
     return StreamingResponse(
-        gen_frames(url, True, vconf=vconf, pconf=pconf),
+        gen_frames(url, True, vconf=vconf, pconf=pconf, read_plate=read_plate),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
-
-
-@app.get("/api/rtsp_urls")
-def get_rtsp_urls():
-    try:
-        with open(RTSP_FILE) as f:
-            return json.load(f)
-    except Exception:
-        return {}
 
 
 @app.post("/api/alpr")
@@ -112,6 +110,23 @@ async def alpr(file: UploadFile = File(...)):
 
 
  # Serve frontend after registering API routes so it doesn't shadow them
+
+
+@app.get("/api/cameras")
+def camera_presets():
+    try:
+        with open(CAMERA_CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError as exc:  # pragma: no cover - simple IO guard
+        raise HTTPException(status_code=404, detail="Camera preset file missing") from exc
+    except json.JSONDecodeError as exc:  # pragma: no cover - simple IO guard
+        raise HTTPException(status_code=500, detail="Camera preset file invalid") from exc
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=500, detail="Camera preset file must be a mapping")
+
+    presets = [{"label": key, "url": value} for key, value in data.items()]
+    return {"presets": presets}
 
 
 # Chatbot streaming proxy to Ollama-compatible API (local Ollama)
