@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,13 +8,17 @@ import cv2
 import numpy as np
 import json
 from types import SimpleNamespace
-from typing import Optional
+from typing import Optional, Set
+from threading import Lock
 from utils.alpr_core import ALPRCore
 import platform
 import subprocess
 import shutil
 import os
 from typing import List
+import av
+from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
+from aiortc.mediastreams import MediaStreamError
 try:
     import psutil  # optional dependency
 except Exception:  # pragma: no cover
@@ -52,6 +57,8 @@ opts = SimpleNamespace(
     lang="en",  # follow main.py label mapping (car, bus, ...)
 )
 alpr_model = ALPRCore(opts)
+ALPR_PROCESS_LOCK = Lock()
+peer_connections: Set[RTCPeerConnection] = set()
 
 
 def gen_frames(
@@ -61,25 +68,116 @@ def gen_frames(
     pconf: Optional[float] = None,
     read_plate: Optional[bool] = None,
 ):
-    if read_plate is not None:
-        alpr_model.read_plate = bool(read_plate)
-        setattr(alpr_model.opts, "read_plate", bool(read_plate))
     cap = cv2.VideoCapture(url)
     while True:
         ret, frame = cap.read()
         if not ret:
             break
         if process:
-            # Update thresholds dynamically if provided
-            if vconf is not None:
-                alpr_model.opts.vconf = float(vconf)
-            if pconf is not None:
-                alpr_model.opts.pconf = float(pconf)
-            frame = alpr_model.process_frame(frame)
+            with ALPR_PROCESS_LOCK:
+                if read_plate is not None:
+                    alpr_model.read_plate = bool(read_plate)
+                    setattr(alpr_model.opts, "read_plate", bool(read_plate))
+                if vconf is not None:
+                    alpr_model.opts.vconf = float(vconf)
+                if pconf is not None:
+                    alpr_model.opts.pconf = float(pconf)
+                frame = alpr_model.process_frame(frame)
         _, buffer = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
     cap.release()
+
+
+class ALPRWebRTCVideoTrack(VideoStreamTrack):
+    kind = "video"
+
+    def __init__(
+        self,
+        *,
+        url: str,
+        process: bool,
+        vconf: Optional[float],
+        pconf: Optional[float],
+        read_plate: Optional[bool],
+    ):
+        super().__init__()
+        self._url = url
+        self._process = process
+        self._vconf = float(vconf) if vconf is not None else None
+        self._pconf = float(pconf) if pconf is not None else None
+        if read_plate is None:
+            self._read_plate: Optional[bool] = None
+        else:
+            self._read_plate = bool(read_plate)
+        self._cap = cv2.VideoCapture(url)
+        if not self._cap or not self._cap.isOpened():
+            self.close()
+            raise ValueError("Unable to open video source")
+        self._closed = False
+
+    def _read_frame(self) -> Optional[np.ndarray]:
+        if self._cap is None:
+            return None
+        ret, frame = self._cap.read()
+        if not ret or frame is None:
+            return None
+        return frame
+
+    async def recv(self) -> av.VideoFrame:
+        if self._closed:
+            raise MediaStreamError("Video track already closed")
+
+        loop = asyncio.get_running_loop()
+        frame = await loop.run_in_executor(None, self._read_frame)
+
+        if frame is None:
+            self.close()
+            raise MediaStreamError("Stream ended or failed to decode frame")
+
+        if self._process:
+            with ALPR_PROCESS_LOCK:
+                if self._read_plate is not None:
+                    alpr_model.read_plate = self._read_plate
+                    setattr(alpr_model.opts, "read_plate", self._read_plate)
+                if self._vconf is not None:
+                    alpr_model.opts.vconf = self._vconf
+                if self._pconf is not None:
+                    alpr_model.opts.pconf = self._pconf
+                frame = alpr_model.process_frame(frame)
+
+        pts, time_base = await self.next_timestamp()
+        video_frame = av.VideoFrame.from_ndarray(frame, format="bgr24")
+        video_frame.pts = pts
+        video_frame.time_base = time_base
+        return video_frame
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self._cap is not None:
+            try:
+                self._cap.release()
+            finally:
+                self._cap = None
+        super().stop()
+
+
+async def _cleanup_peer_connection(pc: RTCPeerConnection) -> None:
+    if pc in peer_connections:
+        peer_connections.remove(pc)
+    for sender in pc.getSenders():
+        track = getattr(sender, "track", None)
+        if isinstance(track, ALPRWebRTCVideoTrack):
+            track.close()
+    extra_tracks = getattr(pc, "_app_tracks", [])
+    for track in extra_tracks:
+        if isinstance(track, ALPRWebRTCVideoTrack):
+            track.close()
+    if hasattr(pc, "_app_tracks"):
+        pc._app_tracks = []  # type: ignore[attr-defined]
+    await pc.close()
 
 
 @app.get("/api/video")
@@ -98,6 +196,89 @@ def alpr_stream(
         gen_frames(url, True, vconf=vconf, pconf=pconf, read_plate=read_plate),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
+
+
+def _parse_optional_float(value: Optional[object], field: str) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail=f"Invalid {field} value")
+
+
+def _parse_optional_bool(value: Optional[object], field: str) -> Optional[bool]:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    if isinstance(value, (int, float)):
+        return bool(value)
+    raise HTTPException(status_code=400, detail=f"Invalid {field} value")
+
+
+@app.post("/api/webrtc/offer")
+async def webrtc_offer(payload: dict):
+    url = (payload.get("url") or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="Stream URL is required")
+
+    mode = (payload.get("mode") or "alpr").strip().lower()
+    process = mode != "preview"
+
+    offer_sdp = payload.get("sdp")
+    offer_type = payload.get("type")
+    if not offer_sdp or not offer_type:
+        raise HTTPException(status_code=400, detail="SDP offer is required")
+
+    if offer_type != "offer":
+        raise HTTPException(status_code=400, detail="SDP type must be 'offer'")
+
+    vconf = _parse_optional_float(payload.get("vconf"), "vconf")
+    pconf = _parse_optional_float(payload.get("pconf"), "pconf")
+    read_plate = _parse_optional_bool(payload.get("read_plate"), "read_plate")
+
+    try:
+        track = ALPRWebRTCVideoTrack(
+            url=url,
+            process=process,
+            vconf=vconf,
+            pconf=pconf,
+            read_plate=read_plate,
+        )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - defensive catch
+        raise HTTPException(status_code=500, detail="Failed to initialize video track") from exc
+
+    pc = RTCPeerConnection()
+    peer_connections.add(pc)
+    pc._app_tracks = [track]  # type: ignore[attr-defined]
+
+    @pc.on("connectionstatechange")
+    async def on_connection_state_change() -> None:
+        if pc.connectionState in {"failed", "closed", "disconnected"}:
+            await _cleanup_peer_connection(pc)
+
+    try:
+        await pc.setRemoteDescription(RTCSessionDescription(sdp=offer_sdp, type=offer_type))
+        pc.addTrack(track)
+        answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+    except Exception as exc:
+        track.close()
+        await _cleanup_peer_connection(pc)
+        raise HTTPException(status_code=500, detail=f"WebRTC negotiation failed: {exc}") from exc
+
+    return {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
 
 
 @app.post("/api/alpr")
@@ -283,6 +464,13 @@ def system_info():
     info["gpus"] = gpus
 
     return info
+
+
+@app.on_event("shutdown")
+async def shutdown_webapp() -> None:
+    remaining = list(peer_connections)
+    for pc in remaining:
+        await _cleanup_peer_connection(pc)
 
 # Keep this last so it doesn't intercept /api/* routes
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
