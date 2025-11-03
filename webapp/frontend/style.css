@@ -1,14 +1,44 @@
+@font-face {
+  font-family: 'Coves';
+  src: url('static/fonts/Coves-Regular.woff2') format('woff2'),
+       url('static/fonts/Coves-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Coves';
+  src: url('static/fonts/Coves-Bold.woff2') format('woff2'),
+       url('static/fonts/Coves-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Coves';
+  src: url('static/fonts/Coves-Light.woff2') format('woff2'),
+       url('static/fonts/Coves-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
-  --surface: #ffffff;
-  --surface-muted: #f1f5f9;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --surface-muted: #eef3ff;
   --text: #0f172a;
   --text-muted: #475569;
   --accent: #2563eb;
   --accent-strong: #1d4ed8;
   --border: #d4dbe5;
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-highlight: rgba(255, 255, 255, 0.65);
   --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Coves', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 * {
@@ -18,9 +48,34 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--surface-muted);
+  background: radial-gradient(120% 120% at 15% 10%, rgba(255, 255, 255, 0.9) 0%, #e0eaff 42%, #eff5ff 100%);
   color: var(--text);
   font-family: inherit;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(0.5px);
+}
+
+body::before {
+  top: -160px;
+  right: -80px;
+}
+
+body::after {
+  bottom: -140px;
+  left: -120px;
+  opacity: 0.85;
 }
 
 .app-shell {
@@ -28,18 +83,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .app-header {
-  background: var(--surface);
-  border-radius: 18px;
-  padding: 24px;
-  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  padding: 12px 0 8px;
 }
 
 .app-brand {
@@ -83,15 +137,20 @@ body {
   background: var(--surface);
   border-radius: 18px;
   padding: 16px;
-  min-height: 360px;
+  min-height: 600px;
   box-shadow: var(--shadow);
   display: flex;
   align-items: stretch;
   justify-content: center;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  overflow: hidden;
 }
 
 .stream-view {
   width: 100%;
+  max-height: 80vh;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #0f172a;
@@ -103,13 +162,15 @@ body {
   position: absolute;
   inset: 16px;
   border-radius: 12px;
-  border: 1px dashed var(--border);
-  background: repeating-linear-gradient(135deg, rgba(241, 245, 249, 0.7) 0px, rgba(241, 245, 249, 0.7) 12px, rgba(226, 232, 240, 0.7) 12px, rgba(226, 232, 240, 0.7) 24px);
+  border: 1px dashed var(--glass-border);
+  background: rgba(255, 255, 255, 0.32);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
   font-weight: 500;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .control-panel {
@@ -120,6 +181,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 .control-panel.preview-mode .alpr-only {

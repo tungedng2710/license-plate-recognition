@@ -95,6 +95,13 @@ Arguments (common):
 - `--device`: CUDA device id(s) or `cpu`.
 - `--project`, `--name`, `--exist-ok`, `--workers`, `--resume`, `--patience`, `--seed`.
 
+## Model Zoo
+Produce a Markdown summary of the latest YOLO experiments under `runs/detect`:
+```bash
+python scripts/generate_model_zoo.py --runs-dir runs/detect --output MODEL_ZOO.md
+```
+This will refresh `MODEL_ZOO.md` with the best precision/recall/mAP values it finds per run and highlight any incomplete runs.
+
 ## TonAI Computer Vision Hub
 Launch a modern interface for starting YOLOv9 training with live progress updates:
 
