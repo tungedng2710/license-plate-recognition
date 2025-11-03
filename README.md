@@ -1,11 +1,12 @@
 # TrafficCam: Traffic surveillance
 ### Demo pipeline result
 ![Demo](data/demo.jpg)
-### Web App (beta)
+### Interactive UI (Beta Version)
 ![Demo](data/demo2.png)
 
 ## ToDo
-- [ ] MLOPs Platform
+- [ ] Vision Language Model
+- [ ] AutoLabel Pipeline
 - [x] PPOCRv5 (Detection + Orientation + Recognition)
 - [x] TensorRT Inference
 - [x] ONNX Models
@@ -102,7 +103,7 @@ python scripts/generate_model_zoo.py --runs-dir runs/detect --output MODEL_ZOO.m
 ```
 This will refresh `MODEL_ZOO.md` with the best precision/recall/mAP values it finds per run and highlight any incomplete runs.
 
-## TonAI Computer Vision Hub
+## WebApp
 Launch a modern interface for starting YOLOv9 training with live progress updates:
 
 ```bash
