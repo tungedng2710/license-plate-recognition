@@ -2,7 +2,7 @@
 ### Demo pipeline result
 ![Demo](data/demo.jpg)
 ### Interactive UI (Beta Version)
-![Demo](data/demo2.jpg)
+![Demo](data/demo2.png)
 
 ## ToDo
 - [ ] Vision Language Model
