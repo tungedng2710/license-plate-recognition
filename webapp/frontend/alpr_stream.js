@@ -11,17 +11,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const vconfVal = document.getElementById('vconf-val');
   const pconfVal = document.getElementById('pconf-val');
   const streamImg = document.getElementById('alpr-stream');
+  const webrtcVideo = document.getElementById('webrtc-stream');
+  const transportSelect = document.getElementById('stream-transport');
   const controlPanel = document.querySelector('.control-panel');
   const placeholder = document.getElementById('stream-placeholder');
   const placeholderText = placeholder ? placeholder.querySelector('p') : null;
   const CUSTOM_OPTION_VALUE = '__custom';
+  const TRANSPORT_MJPEG = 'mjpeg';
+  const TRANSPORT_WEBRTC = 'webrtc';
 
-  if (!streamInput || !cameraSelect || !startBtn || !pauseBtn || !stopBtn || !streamImg || !readPlateToggle || !modeSelect) {
+  if (
+    !streamInput ||
+    !cameraSelect ||
+    !startBtn ||
+    !pauseBtn ||
+    !stopBtn ||
+    !streamImg ||
+    !webrtcVideo ||
+    !transportSelect ||
+    !readPlateToggle ||
+    !modeSelect
+  ) {
     return;
   }
 
   let currentSrc = '';
   let paused = false;
+  let currentTransport = TRANSPORT_MJPEG;
+  let peerConnection = null;
+  let currentStreamNonce = 0;
+  let lastStartConfig = null;
+
+  function getSelectedTransport() {
+    return transportSelect.value || TRANSPORT_MJPEG;
+  }
 
   function getSelectedMode() {
     return modeSelect.value || 'alpr';
@@ -43,13 +66,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function stopStream(message = 'No stream running') {
+  function hideAllStreams() {
     if (streamImg) {
+      streamImg.style.display = 'none';
       streamImg.removeAttribute('src');
     }
+    if (webrtcVideo) {
+      webrtcVideo.pause();
+      webrtcVideo.removeAttribute('src');
+      webrtcVideo.srcObject = null;
+      webrtcVideo.style.display = 'none';
+    }
+  }
+
+  function teardownWebRTC() {
+    if (peerConnection) {
+      try {
+        peerConnection.ontrack = null;
+        peerConnection.onconnectionstatechange = null;
+        peerConnection.close();
+      } catch (error) {
+        // ignore teardown errors
+      }
+    }
+    peerConnection = null;
+    if (webrtcVideo) {
+      webrtcVideo.pause();
+      webrtcVideo.removeAttribute('src');
+      webrtcVideo.srcObject = null;
+      webrtcVideo.style.display = 'none';
+    }
+  }
+
+  function stopStream(message = 'No stream running') {
+    teardownWebRTC();
+    hideAllStreams();
     currentSrc = '';
+    currentTransport = getSelectedTransport();
     paused = false;
     pauseBtn.textContent = 'Pause';
+    lastStartConfig = null;
     showPlaceholder(message);
   }
 
@@ -61,15 +117,161 @@ document.addEventListener('DOMContentLoaded', () => {
       placeholderText.textContent = message;
     }
     placeholder.style.display = 'flex';
-    streamImg.style.display = 'none';
+    hideAllStreams();
   }
 
-  function showStream(src) {
+  function showMjpegStream(src) {
+    currentTransport = TRANSPORT_MJPEG;
     currentSrc = src;
     streamImg.src = src;
     streamImg.style.display = 'block';
+    if (webrtcVideo) {
+      webrtcVideo.style.display = 'none';
+      webrtcVideo.srcObject = null;
+    }
     if (placeholder) {
       placeholder.style.display = 'none';
+    }
+  }
+
+  function buildStreamConfig(url, mode) {
+    const config = {
+      url,
+      mode,
+      transport: getSelectedTransport(),
+      vconf: vconf ? vconf.value : undefined,
+      pconf: pconf ? pconf.value : undefined,
+      readPlate: readPlateToggle ? readPlateToggle.checked : undefined,
+    };
+    return config;
+  }
+
+  function startMjpegStream(config) {
+    teardownWebRTC();
+    const params = new URLSearchParams({ url: config.url });
+    const preview = config.mode === 'preview';
+    if (!preview && typeof config.vconf !== 'undefined') {
+      params.set('vconf', String(config.vconf));
+    }
+    if (!preview && typeof config.pconf !== 'undefined') {
+      params.set('pconf', String(config.pconf));
+    }
+    if (!preview && typeof config.readPlate !== 'undefined') {
+      params.set('read_plate', String(config.readPlate));
+    }
+    const endpoint = preview ? '/api/video' : '/api/alpr_stream';
+    const src = `${endpoint}?${params.toString()}`;
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+    showMjpegStream(src);
+  }
+
+  async function startWebRTCStream(config, nonce) {
+    teardownWebRTC();
+    currentTransport = TRANSPORT_WEBRTC;
+    hideAllStreams();
+    if (placeholder) {
+      if (placeholderText) {
+        placeholderText.textContent = 'Connecting via WebRTC...';
+      }
+      placeholder.style.display = 'flex';
+    }
+
+    const pc = new RTCPeerConnection();
+    peerConnection = pc;
+
+    pc.addTransceiver('video', { direction: 'recvonly' });
+
+    pc.ontrack = (event) => {
+      if (nonce !== currentStreamNonce) {
+        return;
+      }
+      const [stream] = event.streams || [];
+      if (!stream || !webrtcVideo) {
+        return;
+      }
+      webrtcVideo.srcObject = stream;
+      webrtcVideo.style.display = 'block';
+      if (placeholder) {
+        placeholder.style.display = 'none';
+      }
+      const playPromise = webrtcVideo.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed') {
+        showPlaceholder('WebRTC connection failed');
+        teardownWebRTC();
+      } else if (pc.connectionState === 'disconnected') {
+        showPlaceholder('WebRTC connection lost');
+      }
+    };
+
+    const payload = {
+      sdp: undefined,
+      type: undefined,
+      url: config.url,
+      mode: config.mode,
+    };
+
+    const preview = config.mode === 'preview';
+    if (!preview && typeof config.vconf !== 'undefined') {
+      payload.vconf = config.vconf;
+    }
+    if (!preview && typeof config.pconf !== 'undefined') {
+      payload.pconf = config.pconf;
+    }
+    if (!preview && typeof config.readPlate !== 'undefined') {
+      payload.read_plate = config.readPlate;
+    }
+
+    try {
+      const offer = await pc.createOffer();
+      if (nonce !== currentStreamNonce) {
+        return;
+      }
+      await pc.setLocalDescription(offer);
+      payload.sdp = offer.sdp;
+      payload.type = offer.type;
+
+      const response = await fetch('/api/webrtc/offer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+      if (nonce !== currentStreamNonce) {
+        return;
+      }
+      const answer = await response.json();
+      await pc.setRemoteDescription(answer);
+      if (placeholder) {
+        placeholder.style.display = 'none';
+      }
+      paused = false;
+      pauseBtn.textContent = 'Pause';
+    } catch (error) {
+      console.error('Failed to start WebRTC stream', error); // eslint-disable-line no-console
+      showPlaceholder('Unable to start WebRTC stream. Check console for details.');
+      teardownWebRTC();
+    }
+  }
+
+  async function startStream(config) {
+    lastStartConfig = config;
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+    currentStreamNonce += 1;
+    const nonce = currentStreamNonce;
+    if (config.transport === TRANSPORT_WEBRTC) {
+      await startWebRTCStream(config, nonce);
+    } else {
+      startMjpegStream(config);
     }
   }
 
@@ -106,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     streamInput.classList.remove('input-error');
   });
 
-  startBtn.addEventListener('click', () => {
+  startBtn.addEventListener('click', async () => {
     const url = streamInput.value.trim();
     if (!url) {
       streamInput.classList.add('input-error');
@@ -116,38 +318,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const mode = getSelectedMode();
-    const preview = mode === 'preview';
-    const params = new URLSearchParams({ url });
-    if (!preview && vconf) {
-      params.set('vconf', String(vconf.value));
-    }
-    if (!preview && pconf) {
-      params.set('pconf', String(pconf.value));
-    }
-    if (!preview && readPlateToggle) {
-      params.set('read_plate', String(readPlateToggle.checked));
-    }
-
-    const endpoint = preview ? '/api/video' : '/api/alpr_stream';
-    const src = `${endpoint}?${params.toString()}`;
-    paused = false;
-    pauseBtn.textContent = 'Pause';
-    showStream(src);
+    const config = buildStreamConfig(url, mode);
+    await startStream(config);
   });
 
-  pauseBtn.addEventListener('click', () => {
-    if (!currentSrc) {
+  pauseBtn.addEventListener('click', async () => {
+    if (!lastStartConfig && !currentSrc) {
       return;
     }
+
+    if (currentTransport === TRANSPORT_MJPEG) {
+      if (!currentSrc) {
+        return;
+      }
+      if (!paused) {
+        streamImg.removeAttribute('src');
+        showPlaceholder('Stream paused');
+        pauseBtn.textContent = 'Resume';
+        paused = true;
+      } else {
+        showMjpegStream(currentSrc);
+        pauseBtn.textContent = 'Pause';
+        paused = false;
+      }
+      return;
+    }
+
     if (!paused) {
-      streamImg.removeAttribute('src');
+      teardownWebRTC();
       showPlaceholder('Stream paused');
       pauseBtn.textContent = 'Resume';
       paused = true;
     } else {
-      showStream(currentSrc);
-      pauseBtn.textContent = 'Pause';
+      if (!lastStartConfig) {
+        return;
+      }
       paused = false;
+      pauseBtn.textContent = 'Pause';
+      await startStream(lastStartConfig);
     }
   });
 
@@ -156,6 +364,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const message = preview
       ? 'Camera preview stopped. Start to view the camera feed.'
       : 'No stream running';
+    stopStream(message);
+  });
+
+  transportSelect.addEventListener('change', () => {
+    const value = getSelectedTransport();
+    const message = value === TRANSPORT_WEBRTC
+      ? 'WebRTC selected. Start to negotiate the stream.'
+      : 'HTTP MJPEG selected. Start to view the camera feed.';
     stopStream(message);
   });
 

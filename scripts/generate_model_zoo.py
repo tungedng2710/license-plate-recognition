@@ -128,9 +128,6 @@ def gather_run_summary(run_dir: Path, project_root: Path) -> Tuple[Optional[Dict
     epoch = get_arg("epochs", "N/A")
 
     best_epoch = best_row.get("epoch", "N/A")
-    weights_path = run_dir / "weights" / "best.pt"
-    weights = weights_path if weights_path.is_file() else None
-
     data_path_str = get_arg("data")
     data_path = Path(data_path_str).expanduser() if data_path_str != "N/A" else None
     model_config = get_arg("model")
@@ -149,7 +146,6 @@ def gather_run_summary(run_dir: Path, project_root: Path) -> Tuple[Optional[Dict
         "map5095": best_map5095,
         "precision": precision,
         "recall": recall,
-        "weights": relativize(weights, project_root) if weights else "N/A",
     }
     return summary, warnings
 
@@ -171,15 +167,15 @@ def build_markdown(
 
     if summaries:
         table_header = (
-            "| Run | Model | Data | Img | Batch | Epochs | Best Epoch | mAP50 | mAP50-95 | Precision | Recall | Weights |"
+            "| Run | Model | Data | Img | Batch | Epochs | Best Epoch | mAP50 | mAP50-95 | Precision | Recall |"
         )
         table_sep = (
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
         )
 
         rows = []
         for entry in summaries:
-            row = "| {run_name} | `{model}` | `{data}` | {imgsz} | {batch} | {epochs} | {best_epoch} | {map50} | {map5095} | {precision} | {recall} | `{weights}` |".format(
+            row = "| {run_name} | `{model}` | `{data}` | {imgsz} | {batch} | {epochs} | {best_epoch} | {map50} | {map5095} | {precision} | {recall} |".format(
                 run_name=entry["run_name"],
                 model=entry["model"],
                 data=entry["data"],
@@ -191,7 +187,6 @@ def build_markdown(
                 map5095=format_float(entry["map5095"]),
                 precision=format_float(entry["precision"]),
                 recall=format_float(entry["recall"]),
-                weights=entry["weights"],
             )
             rows.append(row)
 

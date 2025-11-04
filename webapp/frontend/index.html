@@ -21,6 +21,7 @@
     <main class="app-main">
       <section class="stream-panel">
         <img id="alpr-stream" alt="License plate detection preview" class="stream-view" />
+        <video id="webrtc-stream" class="stream-view" autoplay playsinline muted></video>
         <div class="stream-placeholder" id="stream-placeholder">
           <p>No stream running</p>
         </div>
@@ -41,6 +42,12 @@
         <select id="stream-mode">
           <option value="preview">Camera Preview</option>
           <option value="alpr" selected>License Plate Recognition</option>
+        </select>
+
+        <label class="control-label" for="stream-transport">Stream Transport</label>
+        <select id="stream-transport">
+          <option value="mjpeg" selected>HTTP MJPEG</option>
+          <option value="webrtc">WebRTC (beta)</option>
         </select>
 
         <div class="control-group alpr-only">
