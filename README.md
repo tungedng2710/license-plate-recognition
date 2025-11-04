@@ -103,6 +103,30 @@ python scripts/generate_model_zoo.py --runs-dir runs/detect --output MODEL_ZOO.m
 ```
 This will refresh `MODEL_ZOO.md` with the best precision/recall/mAP values it finds per run and highlight any incomplete runs.
 
+## Roboflow Dataset Downloader
+Install Roboflow package
+```bash
+pip install roboflow
+```
+
+Automate Roboflow dataset exports as training versions evolve:
+
+1. Configure secrets in `.env` (create the file if it does not exist):
+   ```bash
+   ROBOFLOW_API_KEY=your-api-key
+   ROBOFLOW_WORKSPACE=your-workspace
+   ROBOFLOW_PROJECT=your-project
+   ROBOFLOW_VERSION=1
+   ROBOFLOW_EXPORT_FORMAT=yolov8          # optional, defaults to yolov8
+   ROBOFLOW_POLL_INTERVAL=600             # optional, seconds between checks
+   ```
+2. Run the downloader loop:
+   ```bash
+   python data/download_roboflow.py
+   ```
+
+The script reads configuration from `.env`, checks Roboflow every `ROBOFLOW_POLL_INTERVAL` seconds (10 minutes by default), and downloads the configured `ROBOFLOW_VERSION`. When a download succeeds, it bumps `ROBOFLOW_VERSION` by `+1` in both the environment and `.env` so the next iteration fetches the subsequent release. Failures leave the version unchanged and are logged to stderr.
+
 ## WebApp
 Launch a modern interface for starting YOLOv9 training with live progress updates:
 
