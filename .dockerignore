@@ -17,7 +17,7 @@ data/**
 
 # Checkpoints – include only the weights required by the runtime
 weights/**
-!weights/vehicle_yolo12s_640.pt
+!weights/vehicle*
 !weights/plate_yolov8n_320_2024.pt
 !weights/deepsort/
 !weights/deepsort/**

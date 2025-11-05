@@ -12,7 +12,7 @@ from tracking.deep_sort import DeepSort
 from tracking.sort import Sort
 from utils.utils import (
     BGR_COLORS,
-    VEHICLES,
+    VEHICLES,   
     Vehicle,
     check_image_size,
     check_legit_plate,
@@ -42,10 +42,9 @@ class ALPRCore:
         self._is_cuda = str(self.opts.device).lower().startswith("cuda")
 
         # Detectors
-        self.vehicle_detector = YOLO(self.opts.vehicle_weight, task="detect")
+        self.vehicle_detector = self._create_vehicle_detector(self.opts.vehicle_weight)
         self.plate_detector = YOLO(self.opts.plate_weight, task="detect")
         try:
-            self.vehicle_detector.to(self.opts.device)
             self.plate_detector.to(self.opts.device)
         except Exception:
             pass
@@ -74,6 +73,15 @@ class ALPRCore:
         # Misc
         self.color = BGR_COLORS
         self.lang = getattr(self.opts, "lang", "en")
+
+    def _create_vehicle_detector(self, weight_path: str) -> YOLO:
+        detector = YOLO(weight_path, task="detect")
+        try:
+            detector.to(self.opts.device)
+        except Exception:
+            pass
+        self.opts.vehicle_weight = weight_path
+        return detector
 
     def _resolve_device(self, requested: Optional[str]) -> str:
         if requested is None:
@@ -108,6 +116,13 @@ class ALPRCore:
 
     def reset(self) -> None:
         self._init_tracker()
+
+    def set_vehicle_weight(self, weight_path: str) -> None:
+        if not weight_path:
+            raise ValueError("Vehicle weight path must be provided")
+        self.vehicle_detector = self._create_vehicle_detector(weight_path)
+        # reset tracker state so IDs restart for the new model
+        self.reset()
 
     def _extract_plate_text(self, plate_image):
         results = self.ocr.predict(input=plate_image)
