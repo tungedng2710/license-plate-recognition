@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const streamImg = document.getElementById('alpr-stream');
   const webrtcVideo = document.getElementById('webrtc-stream');
   const transportSelect = document.getElementById('stream-transport');
+  const vehicleModelSelect = document.getElementById('vehicle-model');
   const controlPanel = document.querySelector('.control-panel');
   const placeholder = document.getElementById('stream-placeholder');
   const placeholderText = placeholder ? placeholder.querySelector('p') : null;
@@ -30,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     !webrtcVideo ||
     !transportSelect ||
     !readPlateToggle ||
-    !modeSelect
+    !modeSelect ||
+    !vehicleModelSelect
   ) {
     return;
   }
@@ -41,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let peerConnection = null;
   let currentStreamNonce = 0;
   let lastStartConfig = null;
+  let currentVehicleModel = null;
 
   function getSelectedTransport() {
     return transportSelect.value || TRANSPORT_MJPEG;
@@ -131,6 +134,126 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (placeholder) {
       placeholder.style.display = 'none';
+    }
+  }
+
+  async function applyVehicleModel(weightId) {
+    if (!weightId) {
+      return;
+    }
+    const previousValue = currentVehicleModel;
+    vehicleModelSelect.disabled = true;
+    try {
+      const response = await fetch('/api/vehicle_models/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weight: weightId }),
+      });
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+      const payload = await response.json();
+      const selected = typeof payload?.selected === 'string' && payload.selected
+        ? payload.selected
+        : weightId;
+      currentVehicleModel = selected;
+      vehicleModelSelect.value = selected;
+    } catch (error) {
+      console.error('Failed to switch vehicle detector', error); // eslint-disable-line no-console
+      if (previousValue) {
+        vehicleModelSelect.value = previousValue;
+      }
+    } finally {
+      vehicleModelSelect.disabled = false;
+    }
+  }
+
+  async function loadVehicleModels() {
+    vehicleModelSelect.disabled = true;
+    vehicleModelSelect.innerHTML = '';
+
+    const loadingOption = document.createElement('option');
+    loadingOption.textContent = 'Loading...';
+    loadingOption.disabled = true;
+    loadingOption.selected = true;
+    vehicleModelSelect.appendChild(loadingOption);
+
+    try {
+      const response = await fetch('/api/vehicle_models');
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+      const payload = await response.json();
+      const models = Array.isArray(payload?.models) ? payload.models : [];
+      const selected = typeof payload?.selected === 'string' ? payload.selected : null;
+
+      vehicleModelSelect.innerHTML = '';
+      if (!models.length) {
+        const emptyOption = document.createElement('option');
+        emptyOption.textContent = 'No models found';
+        emptyOption.disabled = true;
+        emptyOption.selected = true;
+        vehicleModelSelect.appendChild(emptyOption);
+        currentVehicleModel = null;
+        return;
+      }
+
+      let foundSelected = false;
+      let added = 0;
+      models.forEach((model) => {
+        if (!model) {
+          return;
+        }
+        const option = document.createElement('option');
+        const optionValue = typeof model.path === 'string' && model.path
+          ? model.path
+          : model.filename || '';
+        if (!optionValue) {
+          return;
+        }
+        option.value = optionValue;
+        option.textContent = model.label || model.filename || optionValue;
+        if (selected && optionValue === selected) {
+          option.selected = true;
+          foundSelected = true;
+        }
+        vehicleModelSelect.appendChild(option);
+        added += 1;
+      });
+
+      if (added === 0) {
+        const emptyOption = document.createElement('option');
+        emptyOption.textContent = 'No models found';
+        emptyOption.disabled = true;
+        emptyOption.selected = true;
+        vehicleModelSelect.appendChild(emptyOption);
+        currentVehicleModel = null;
+        return;
+      }
+
+      if (!foundSelected) {
+        vehicleModelSelect.selectedIndex = 0;
+        const fallbackValue = vehicleModelSelect.value;
+        currentVehicleModel = fallbackValue || null;
+        if (fallbackValue) {
+          await applyVehicleModel(fallbackValue);
+        }
+        return;
+      }
+
+      const selectedValue = vehicleModelSelect.value;
+      currentVehicleModel = selectedValue || null;
+    } catch (error) {
+      console.error('Failed to load vehicle models', error); // eslint-disable-line no-console
+      vehicleModelSelect.innerHTML = '';
+      const errorOption = document.createElement('option');
+      errorOption.textContent = 'Unable to load models';
+      errorOption.disabled = true;
+      errorOption.selected = true;
+      vehicleModelSelect.appendChild(errorOption);
+      currentVehicleModel = null;
+    } finally {
+      vehicleModelSelect.disabled = false;
     }
   }
 
@@ -308,6 +431,14 @@ document.addEventListener('DOMContentLoaded', () => {
     streamInput.classList.remove('input-error');
   });
 
+  vehicleModelSelect.addEventListener('change', async () => {
+    const value = vehicleModelSelect.value;
+    if (!value || value === currentVehicleModel) {
+      return;
+    }
+    await applyVehicleModel(value);
+  });
+
   startBtn.addEventListener('click', async () => {
     const url = streamInput.value.trim();
     if (!url) {
@@ -429,4 +560,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadCameraPresets();
+  loadVehicleModels();
 });

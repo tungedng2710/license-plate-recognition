@@ -42,10 +42,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "frontend"
 REPO_ROOT = BASE_DIR.parent
 CAMERA_CONFIG_PATH = REPO_ROOT / "webapp" / "rtsp_url.json"
+VEHICLE_WEIGHTS_DIR = REPO_ROOT / "weights"
+VEHICLE_WEIGHT_EXTENSIONS = {".pt", ".pth"}
 
 # Initialize ALPR tracker (tracking + OCR) using shared core
 opts = SimpleNamespace(
-    vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolo12s_640.pt"),
+    vehicle_weight=str(REPO_ROOT / "weights" / "vehicle_yolov9s_640_30oct2025.pt"),
     plate_weight=str(REPO_ROOT / "weights" / "plate_yolov8n_320_2024.pt"),
     dsort_weight=str(REPO_ROOT / "weights" / "deepsort" / "ckpt.t7"),
     vconf=0.6,
@@ -59,6 +61,39 @@ opts = SimpleNamespace(
 alpr_model = ALPRCore(opts)
 ALPR_PROCESS_LOCK = Lock()
 peer_connections: Set[RTCPeerConnection] = set()
+
+
+def _find_vehicle_weights() -> List[Path]:
+    if not VEHICLE_WEIGHTS_DIR.exists():
+        return []
+    weights: List[Path] = []
+    for path in VEHICLE_WEIGHTS_DIR.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix.lower() not in VEHICLE_WEIGHT_EXTENSIONS:
+            continue
+        if "vehicle" not in path.stem.lower():
+            continue
+        try:
+            path.relative_to(VEHICLE_WEIGHTS_DIR)
+        except ValueError:
+            continue
+        weights.append(path)
+    weights.sort()
+    return weights
+
+
+def _serialize_weight_path(path: Path) -> dict:
+    try:
+        rel_path = path.relative_to(VEHICLE_WEIGHTS_DIR)
+    except ValueError:
+        rel_path = path
+    label = path.stem.replace("_", " ").title()
+    return {
+        "label": label,
+        "filename": path.name,
+        "path": rel_path.as_posix(),
+    }
 
 
 def gen_frames(
@@ -308,6 +343,61 @@ def camera_presets():
 
     presets = [{"label": key, "url": value} for key, value in data.items()]
     return {"presets": presets}
+
+
+@app.get("/api/vehicle_models")
+def vehicle_models():
+    weights = _find_vehicle_weights()
+    selected_path = Path(getattr(alpr_model.opts, "vehicle_weight", ""))
+    selected_id: Optional[str] = None
+    try:
+        selected_id = selected_path.relative_to(VEHICLE_WEIGHTS_DIR).as_posix()
+    except Exception:
+        try:
+            resolved = selected_path.resolve()
+            selected_id = resolved.relative_to(VEHICLE_WEIGHTS_DIR.resolve()).as_posix()
+        except Exception:
+            selected_id = selected_path.name or None
+
+    models = [_serialize_weight_path(path) for path in weights]
+    return {"models": models, "selected": selected_id}
+
+
+@app.post("/api/vehicle_models/select")
+def select_vehicle_model(payload: dict):
+    weight_id = payload.get("weight")
+    if not weight_id or not isinstance(weight_id, str):
+        raise HTTPException(status_code=400, detail="Field 'weight' is required")
+
+    candidate_path = Path(weight_id)
+    if candidate_path.is_absolute():
+        # Only allow weights inside the configured weights directory
+        try:
+            candidate_path = candidate_path.relative_to(VEHICLE_WEIGHTS_DIR)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Weight must be inside the weights directory") from exc
+
+    resolved_path = (VEHICLE_WEIGHTS_DIR / candidate_path).resolve()
+    try:
+        resolved_path.relative_to(VEHICLE_WEIGHTS_DIR.resolve())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid weight path") from exc
+
+    if not resolved_path.exists() or not resolved_path.is_file():
+        raise HTTPException(status_code=404, detail="Vehicle weight not found")
+    if resolved_path.suffix.lower() not in VEHICLE_WEIGHT_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Unsupported weight format")
+    if "vehicle" not in resolved_path.stem.lower():
+        raise HTTPException(status_code=400, detail="Not a vehicle weight")
+
+    with ALPR_PROCESS_LOCK:
+        try:
+            alpr_model.set_vehicle_weight(str(resolved_path))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to load vehicle model: {exc}") from exc
+
+    selected_rel = resolved_path.relative_to(VEHICLE_WEIGHTS_DIR).as_posix()
+    return {"selected": selected_rel}
 
 
 # Chatbot streaming proxy to Ollama-compatible API (local Ollama)

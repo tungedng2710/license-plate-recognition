@@ -1,0 +1,26 @@
+# Ignore datasets and heavy training artifacts from the Docker build context.
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Ultralytics training artifacts
+runs/
+
+# Datasets – keep only lightweight configuration files
+data/**
+!data/**/*.yaml
+
+# Checkpoints – include only the weights required by the runtime
+weights/**
+!weights/vehicle*
+!weights/plate_yolov8n_320_2024.pt
+!weights/deepsort/
+!weights/deepsort/**
+!weights/ppocrv4/
+!weights/ppocrv4/**
+*.pt

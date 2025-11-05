@@ -12,7 +12,7 @@
       <div class="app-brand">
         <img src="static/logo_notext.png" alt="TonAI Logo" class="brand-logo" />
         <div>
-          <h1>TonAI Vision</h1>
+          <h1>TonAI AI Traffic Camera</h1>
           <!-- <p class="tagline"></p> -->
         </div>
       </div>
@@ -48,6 +48,11 @@
         <select id="stream-transport">
           <option value="mjpeg" selected>HTTP MJPEG</option>
           <option value="webrtc">WebRTC (beta)</option>
+        </select>
+
+        <label class="control-label" for="vehicle-model">Vehicle Detector</label>
+        <select id="vehicle-model">
+          <option value="" disabled selected>Loading models...</option>
         </select>
 
         <div class="control-group alpr-only">
