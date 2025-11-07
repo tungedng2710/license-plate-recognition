@@ -14,6 +14,3 @@
 | train8 | `yolov9s.pt` | `data/vehicle_30oct2025/data.yaml` | 640 | 32 | 100 | 66 | 0.746 | 0.501 | 0.782 | 0.677 |
 | train6 | `yolo11s.pt` | `data/vehicle_30oct2025/data.yaml` | 640 | 32 | 100 | 83 | 0.715 | 0.504 | 0.830 | 0.635 |
 | train | `yolo11s.yaml` | `data/vehicle_18sep2025/data.yaml` | 640 | 32 | 100 | 43 | 0.689 | 0.365 | 0.656 | 0.693 |
-
-## Skipped Runs
-- `train7`: missing results.csv

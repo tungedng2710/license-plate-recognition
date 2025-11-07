@@ -70,7 +70,7 @@ As regards streaming control, from keyboard,
 
 For quick testing
 ```bat
-python test_alpr.py --input_source <path to your image/video>
+python scripts/test_alpr.py --input_source <path to your image/video>
 ```
 
 ## Train Ultralytics YOLO
@@ -132,21 +132,21 @@ Launch a modern interface for starting YOLOv9 training with live progress update
 
 ```bash
 pip install -r requirements.txt
-uvicorn webapp.backend.main:app --reload
+uvicorn webapp.backend.main:app --reload --host 0.0.0.0
 ```
 
-Open `http://localhost:8000` in your browser to configure the run, select datasets, and watch training progress.
+Open `http://localhost:7867` in your browser to configure the run, select datasets, and watch training progress.
 
 ## Docker
 Build and run the web application in a container:
 ```bash
 docker compose up --build
 ```
-This command starts the FastAPI service on [http://localhost:8000](http://localhost:8000),
+This command starts the FastAPI service on [http://localhost:7867](http://localhost:7867),
 running from the repository root.
 
 To build and run the image manually:
 ```bash
 docker build -t trafficcam .
-docker run -p 8000:8000 trafficcam
+docker run -p 7867:7867 trafficcam
 ```
