@@ -34,6 +34,7 @@ import base64
 import binascii
 import os
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
@@ -102,6 +103,7 @@ class PlateResponseItem(BaseModel):
 class PlateResponse(BaseModel):
     plate_count: int
     plates: List[PlateResponseItem]
+    processing_time: float
 
 
 @dataclass
@@ -295,6 +297,7 @@ def health_check() -> Dict[str, str]:
 
 @app.post("/api/plates")
 async def read_plate(payload: PlateRequest) -> Dict[str, object]:
+    start_time = time.perf_counter()
     image = decode_base64_image(payload.image_base64)
 
     def _run():
@@ -305,6 +308,7 @@ async def read_plate(payload: PlateRequest) -> Dict[str, object]:
         )
 
     detections = await run_in_threadpool(_run)
+    processing_time = time.perf_counter() - start_time
 
     plate_items = [
         PlateResponseItem(
@@ -320,6 +324,7 @@ async def read_plate(payload: PlateRequest) -> Dict[str, object]:
     response = PlateResponse(
         plate_count=len(plate_items),
         plates=plate_items,
+        processing_time=processing_time,
     )
 
     # Maintain compatibility across Pydantic versions
