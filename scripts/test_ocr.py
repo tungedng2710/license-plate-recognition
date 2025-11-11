@@ -1,5 +1,6 @@
 import argparse
 import re
+import sys, os
 from functools import lru_cache
 from typing import Optional, Tuple
 
@@ -7,21 +8,31 @@ import cv2
 import numpy as np
 from paddleocr import PaddleOCR
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.utils import check_legit_plate
 
-
 @lru_cache(maxsize=1)
-def get_ocr() -> PaddleOCR:
+def get_ocr(use_mobile: bool = False) -> PaddleOCR:
     """Lazily construct and cache a PaddleOCR instance.
 
     Returns:
         PaddleOCR: Configured OCR engine instance.
     """
-    return PaddleOCR(
-        use_doc_orientation_classify=False,
-        use_doc_unwarping=False,
-        use_textline_orientation=False,
-    )
+    if use_mobile:
+        return PaddleOCR(
+                    text_detection_model_name="PP-OCRv5_mobile_det",
+                    text_recognition_model_name="PP-OCRv5_mobile_rec",
+                    use_doc_orientation_classify=False,
+                    use_doc_unwarping=False,
+                    use_textline_orientation=False,
+                    device="cpu"
+                )
+    else:
+        return PaddleOCR(
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=False,
+            use_textline_orientation=False,
+        )
 
 
 def extract_plate_info(
@@ -43,7 +54,7 @@ def extract_plate_info(
     if plate_image is None or not isinstance(plate_image, np.ndarray):
         return "", 0.0
 
-    engine = ocr or get_ocr()
+    engine = ocr or get_ocr(use_mobile=True)
 
     try:
         results = engine.predict(input=plate_image)
