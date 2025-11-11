@@ -43,7 +43,7 @@ from typing import Dict, List, Optional
 import cv2
 import numpy as np
 import torch
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 
 try:  # Pydantic v2 first
     from pydantic import BaseModel, Field, field_validator as _validator
@@ -278,6 +278,19 @@ def decode_base64_image(payload: str) -> np.ndarray:
     return image
 
 
+def decode_image_bytes(binary: bytes) -> np.ndarray:
+    """
+    Decode raw image bytes (e.g., from an uploaded file) into an OpenCV array.
+    """
+    if not binary:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    np_buf = np.frombuffer(binary, dtype=np.uint8)
+    image = cv2.imdecode(np_buf, cv2.IMREAD_COLOR)
+    if image is None:
+        raise HTTPException(status_code=400, detail="Unable to decode uploaded image")
+    return image
+
+
 pipeline = PlatePipeline(
     weight_path=DEFAULT_WEIGHT_PATH,
     device=DEFAULT_DEVICE,
@@ -296,15 +309,34 @@ def health_check() -> Dict[str, str]:
 
 
 @app.post("/api/plates")
-async def read_plate(payload: PlateRequest) -> Dict[str, object]:
+async def read_plate(
+    payload: Optional[PlateRequest] = Body(None),
+    image_file: Optional[UploadFile] = File(None),
+    conf_threshold: Optional[float] = Form(None),
+    ocr_threshold: Optional[float] = Form(None),
+) -> Dict[str, object]:
     start_time = time.perf_counter()
-    image = decode_base64_image(payload.image_base64)
+
+    if image_file is not None:
+        image_bytes = await image_file.read()
+        image = decode_image_bytes(image_bytes)
+        det_conf = conf_threshold
+        ocr_conf = ocr_threshold
+    elif payload is not None:
+        image = decode_base64_image(payload.image_base64)
+        det_conf = payload.conf_threshold
+        ocr_conf = payload.ocr_threshold
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide either an uploaded image file or a JSON body with image_base64.",
+        )
 
     def _run():
         return pipeline(
             image,
-            det_conf=payload.conf_threshold,
-            ocr_conf=payload.ocr_threshold,
+            det_conf=det_conf,
+            ocr_conf=ocr_conf,
         )
 
     detections = await run_in_threadpool(_run)
