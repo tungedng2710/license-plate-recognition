@@ -1,18 +1,16 @@
 """
 Lightweight FastAPI microservice used by parking systems to read license plates
-from images that are uploaded as base64 strings.
+from images uploaded as multipart/form-data.
 
 Usage:
     uvicorn scripts.parking_services:app --reload --host 0.0.0.0 --port 8080
 
 POST /api/plates
 ----------------
-Request body (JSON):
-{
-    "image_base64": "<base64 image>",
-    "conf_threshold": 0.3,      # optional detector confidence in [0, 1]
-    "ocr_threshold": 0.6        # optional OCR confidence in [0, 1]
-}
+Request (multipart/form-data):
+    image_file: binary image (required)
+    conf_threshold: detector confidence in [0, 1] (optional)
+    ocr_threshold: OCR confidence in [0, 1] (optional)
 
 Response body (JSON):
 {
@@ -25,13 +23,12 @@ Response body (JSON):
             "ocr_confidence": 0.91,
             "is_legit": true
         }
-    ]
+    ],
+    "processing_time": 0.123
 }
 """
 from __future__ import annotations
 
-import base64
-import binascii
 import os
 import re
 import time
@@ -43,12 +40,12 @@ from typing import Dict, List, Optional
 import cv2
 import numpy as np
 import torch
-from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
 try:  # Pydantic v2 first
-    from pydantic import BaseModel, Field, field_validator as _validator
+    from pydantic import BaseModel
 except ImportError:  # pragma: no cover
-    from pydantic import BaseModel, Field, validator as _validator
+    from pydantic import BaseModel
 
 from starlette.concurrency import run_in_threadpool
 from ultralytics import YOLO
@@ -67,22 +64,6 @@ DEFAULT_DET_CONF = float(os.environ.get("PLATE_CONF_THRESHOLD", 0.25))
 DEFAULT_OCR_CONF = float(os.environ.get("PLATE_OCR_THRESHOLD", 0.8))
 DEFAULT_IMAGE_SIZE = int(os.environ.get("PLATE_IMG_SIZE", 640))
 DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", 0.25))
-
-
-class PlateRequest(BaseModel):
-    image_base64: str = Field(..., description="Image encoded as base64 string.")
-    conf_threshold: Optional[float] = Field(
-        default=None, ge=0.0, le=1.0, description="Detector confidence threshold."
-    )
-    ocr_threshold: Optional[float] = Field(
-        default=None, ge=0.0, le=1.0, description="OCR confidence threshold."
-    )
-
-    @_validator("image_base64")
-    def _not_empty(cls, value: str) -> str:
-        if not value or not value.strip():
-            raise ValueError("image_base64 cannot be empty")
-        return value
 
 
 class PlateBBox(BaseModel):
@@ -260,24 +241,6 @@ class PlatePipeline:
             return results
 
 
-def decode_base64_image(payload: str) -> np.ndarray:
-    """
-    Decode a base64-encoded image. Supports optional data URL prefixes.
-    """
-    if "," in payload:
-        payload = payload.split(",", 1)[1]
-    try:
-        binary = base64.b64decode(payload, validate=True)
-    except binascii.Error as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid base64 payload: {exc}") from exc
-
-    np_buf = np.frombuffer(binary, dtype=np.uint8)
-    image = cv2.imdecode(np_buf, cv2.IMREAD_COLOR)
-    if image is None:
-        raise HTTPException(status_code=400, detail="Unable to decode image bytes")
-    return image
-
-
 def decode_image_bytes(binary: bytes) -> np.ndarray:
     """
     Decode raw image bytes (e.g., from an uploaded file) into an OpenCV array.
@@ -310,27 +273,16 @@ def health_check() -> Dict[str, str]:
 
 @app.post("/api/plates")
 async def read_plate(
-    payload: Optional[PlateRequest] = Body(None),
-    image_file: Optional[UploadFile] = File(None),
+    image_file: UploadFile = File(...),
     conf_threshold: Optional[float] = Form(None),
     ocr_threshold: Optional[float] = Form(None),
 ) -> Dict[str, object]:
     start_time = time.perf_counter()
 
-    if image_file is not None:
-        image_bytes = await image_file.read()
-        image = decode_image_bytes(image_bytes)
-        det_conf = conf_threshold
-        ocr_conf = ocr_threshold
-    elif payload is not None:
-        image = decode_base64_image(payload.image_base64)
-        det_conf = payload.conf_threshold
-        ocr_conf = payload.ocr_threshold
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail="Provide either an uploaded image file or a JSON body with image_base64.",
-        )
+    image_bytes = await image_file.read()
+    image = decode_image_bytes(image_bytes)
+    det_conf = conf_threshold
+    ocr_conf = ocr_threshold
 
     def _run():
         return pipeline(
