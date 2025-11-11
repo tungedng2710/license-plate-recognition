@@ -12,14 +12,16 @@ env/
 runs/
 
 # Datasets – keep only lightweight configuration files
-data/**
-!data/**/*.yaml
-
+data/
+<!-- !data/**/*.yaml -->
+webapp/
+tracking/
+ppocr_onnx/
 # Checkpoints – include only the weights required by the runtime
 weights/**
-!weights/vehicle_yolov9s_640_30oct2025.pt*
+<!-- !weights/vehicle_yolov9s_640_30oct2025.pt* -->
 !weights/plate_yolov8n_320_2024.pt
 !weights/license_plate_detector.pt
-!weights/deepsort/
-!weights/deepsort/**
+<!-- !weights/deepsort/ -->
+<!-- !weights/deepsort/** -->
 *.pt

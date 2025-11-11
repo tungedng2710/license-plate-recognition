@@ -3,9 +3,9 @@ FROM paddlepaddle/paddle:3.2.0
 WORKDIR /app
 # Copy application code
 COPY . .
-
+RUN pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN pip install paddleocr
-RUN pip install fastapi uvicorn av aiortc python-multipart
+RUN pip install fastapi uvicorn av python-multipart
 RUN pip install ultralytics easydict onnx onnxruntime protobuf filterpy
 RUN pip install opencv-python scikit-learn scikit-image matplotlib tqdm pandas seaborn shapely pyclipper imgaug
 # Expose port for web application
