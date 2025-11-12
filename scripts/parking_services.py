@@ -29,6 +29,7 @@ Response body (JSON):
 """
 from __future__ import annotations
 
+import math
 import os
 import re
 import time
@@ -51,7 +52,7 @@ from starlette.concurrency import run_in_threadpool
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
 
-from utils.utils import check_legit_plate, crop_expanded_plate
+from utils.utils import check_legit_plate, crop_expanded_plate, downscale_image
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -63,7 +64,15 @@ DEFAULT_DEVICE = os.environ.get("PLATE_DEVICE", "cpu")
 DEFAULT_DET_CONF = float(os.environ.get("PLATE_CONF_THRESHOLD", 0.25))
 DEFAULT_OCR_CONF = float(os.environ.get("PLATE_OCR_THRESHOLD", 0.8))
 DEFAULT_IMAGE_SIZE = int(os.environ.get("PLATE_IMG_SIZE", 640))
-DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", 0.25))
+DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", -0.01))
+DEFAULT_MIN_INPUT_DIM = max(1, int(os.environ.get("PLATE_MIN_INPUT_DIM", "64")))
+DEFAULT_MAX_INPUT_PIXELS = max(0, int(os.environ.get("PLATE_MAX_INPUT_PIXELS", "12000000")))
+DEFAULT_PLATE_CONTRAST_CLIP = max(
+    0.1, float(os.environ.get("PLATE_CONTRAST_CLIP_LIMIT", "3.0"))
+)
+DEFAULT_PLATE_CONTRAST_TILE = max(
+    1, int(os.environ.get("PLATE_CONTRAST_TILE_GRID", "8"))
+)
 
 
 class PlateBBox(BaseModel):
@@ -130,6 +139,8 @@ class PlatePipeline:
         ocr_conf: float,
         imgsz: int = 640,
         crop_expand_ratio: float = 0.25,
+        contrast_clip_limit: float = 3.0,
+        contrast_tile_grid: int = 8,
     ) -> None:
         self.weight_path = Path(weight_path)
         if not self.weight_path.exists():
@@ -142,6 +153,12 @@ class PlatePipeline:
         self.default_ocr_conf = ocr_conf
         self.crop_expand_ratio = crop_expand_ratio
         self._lock = Lock()
+        tile = max(1, int(contrast_tile_grid))
+        clip_limit = max(0.1, float(contrast_clip_limit))
+        self._clahe = cv2.createCLAHE(
+            clipLimit=clip_limit,
+            tileGridSize=(tile, tile),
+        )
 
         self.detector = YOLO(str(self.weight_path), task="detect")
         try:
@@ -151,11 +168,12 @@ class PlatePipeline:
 
         ocr_kwargs: Dict[str, object] = dict(
             lang="en",
-            # text_detection_model_name="PP-OCRv5_mobile_det",
-            # text_recognition_model_name="PP-OCRv5_mobile_rec",
+            textline_orientation_model_name="PP-LCNet_x0_25_textline_ori",
+            text_detection_model_name="PP-OCRv5_server_det",
+            text_recognition_model_name="PP-OCRv5_server_rec",
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
-            use_textline_orientation=False,
+            use_textline_orientation=True,
         )
         if self.device.startswith("cuda"):
             ocr_kwargs["device"] = "cpu"
@@ -181,6 +199,37 @@ class PlatePipeline:
             confidence=conf,
             legit=bool(text and check_legit_plate(text)),
         )
+
+    def _enhance_plate_crop(self, plate_image: np.ndarray) -> np.ndarray:
+        if (
+            plate_image is None
+            or plate_image.size == 0
+            or plate_image.shape[0] < 2
+            or plate_image.shape[1] < 2
+        ):
+            return plate_image
+
+        enhanced = self._apply_histogram_equalization(plate_image)
+        if self._clahe is None:
+            return enhanced
+
+        lab = cv2.cvtColor(enhanced, cv2.COLOR_BGR2LAB)
+        l_channel, a_channel, b_channel = cv2.split(lab)
+        enhanced_l = self._clahe.apply(l_channel)
+        enhanced_lab = cv2.merge((enhanced_l, a_channel, b_channel))
+        return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+    def _apply_histogram_equalization(self, plate_image: np.ndarray) -> np.ndarray:
+        if len(plate_image.shape) == 2 or plate_image.shape[2] == 1:
+            gray = plate_image if len(plate_image.shape) == 2 else plate_image[:, :, 0]
+            equalized = cv2.equalizeHist(gray)
+            return cv2.cvtColor(equalized, cv2.COLOR_GRAY2BGR)
+
+        ycrcb = cv2.cvtColor(plate_image, cv2.COLOR_BGR2YCrCb)
+        y_channel, cr_channel, cb_channel = cv2.split(ycrcb)
+        y_equalized = cv2.equalizeHist(y_channel)
+        equalized = cv2.merge((y_equalized, cr_channel, cb_channel))
+        return cv2.cvtColor(equalized, cv2.COLOR_YCrCb2BGR)
 
     def __call__(
         self,
@@ -224,6 +273,8 @@ class PlatePipeline:
                     image,
                     expand_ratio=self.crop_expand_ratio,
                 )
+                plate_crop = self._enhance_plate_crop(plate_crop)
+                # plate_crop = downscale_image(plate_crop)
                 text_result = self._predict_text(plate_crop)
                 text = text_result.text if text_result.confidence >= ocr_conf else ""
                 legit = bool(text and text_result.legit and text_result.confidence >= ocr_conf)
@@ -254,6 +305,34 @@ def decode_image_bytes(binary: bytes) -> np.ndarray:
     return image
 
 
+def ensure_image_within_bounds(image: np.ndarray) -> np.ndarray:
+    """
+    Validate request image dimensions and downscale oversized inputs.
+    """
+    if image is None or image.size == 0:
+        raise HTTPException(status_code=400, detail="Uploaded image is empty or invalid")
+
+    height, width = image.shape[:2]
+    if height < DEFAULT_MIN_INPUT_DIM or width < DEFAULT_MIN_INPUT_DIM:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Uploaded image must be at least {DEFAULT_MIN_INPUT_DIM}px "
+                f"on each side (received {width}x{height})."
+            ),
+        )
+
+    if DEFAULT_MAX_INPUT_PIXELS:
+        total_pixels = height * width
+        if total_pixels > DEFAULT_MAX_INPUT_PIXELS:
+            scale = math.sqrt(DEFAULT_MAX_INPUT_PIXELS / total_pixels)
+            new_width = max(1, int(width * scale))
+            new_height = max(1, int(height * scale))
+            image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    return image
+
+
 pipeline = PlatePipeline(
     weight_path=DEFAULT_WEIGHT_PATH,
     device=DEFAULT_DEVICE,
@@ -261,6 +340,8 @@ pipeline = PlatePipeline(
     ocr_conf=DEFAULT_OCR_CONF,
     imgsz=DEFAULT_IMAGE_SIZE,
     crop_expand_ratio=DEFAULT_CROP_EXPAND_RATIO,
+    contrast_clip_limit=DEFAULT_PLATE_CONTRAST_CLIP,
+    contrast_tile_grid=DEFAULT_PLATE_CONTRAST_TILE,
 )
 
 app = FastAPI(title="Parking Service", version="0.1.0")
@@ -281,6 +362,7 @@ async def read_plate(
 
     image_bytes = await image_file.read()
     image = decode_image_bytes(image_bytes)
+    image = ensure_image_within_bounds(image)
     det_conf = conf_threshold
     ocr_conf = ocr_threshold
 

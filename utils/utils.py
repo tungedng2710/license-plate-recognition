@@ -254,6 +254,33 @@ def get_time_now():
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
+def downscale_image(img, scale=1/3):
+    """
+    Downscale an OpenCV image (NumPy array) to about 1/3 of its original size.
+
+    Args:
+        img (numpy.ndarray): The input image.
+        scale (float, optional): Scaling factor. Default is 1/3.
+
+    Returns:
+        numpy.ndarray: The downscaled image.
+    """
+    if img is None:
+        raise ValueError("Input image is None")
+
+    # Get dimensions
+    height, width = img.shape[:2]
+
+    # Compute new dimensions
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+
+    # Resize with area interpolation for better downscaling quality
+    downscaled = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    return downscaled
+
+
 def crop_expanded_plate(plate_xyxy, cropped_vehicle, expand_ratio=0.1):
     """
     Crops an expanded area around the given coordinates in the image.
