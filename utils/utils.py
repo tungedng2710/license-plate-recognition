@@ -118,6 +118,19 @@ def check_image_size(image, w_thres, h_thres):
     else:
         return False
 
+def strip_extra_text(s: str) -> str:
+    if len(s) > 6:
+        if s[0].isalpha():
+            for i, ch in enumerate(s):
+                if ch.isdigit():
+                    s = s[i:]
+                    break
+        if s and s[-1].isalpha():
+            for j in range(len(s)-1, -1, -1):
+                if s[j].isdigit():
+                    s = s[:j+1]
+                    break
+    return s
 
 def draw_text(img, text,
               pos=(0, 0),

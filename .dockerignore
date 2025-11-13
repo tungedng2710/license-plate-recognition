@@ -21,7 +21,8 @@ ppocr_onnx/
 weights/**
 <!-- !weights/vehicle_yolov9s_640_30oct2025.pt* -->
 !weights/plate_yolov8n_320_2024.pt
-!weights/license_plate_detector.pt
+!weights/plate_yolo11s_640_2025.pt
+!weights/plate_yolo11n_640_2025.pt
 <!-- !weights/deepsort/ -->
 <!-- !weights/deepsort/** -->
 *.pt

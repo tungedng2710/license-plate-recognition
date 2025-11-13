@@ -52,19 +52,19 @@ from starlette.concurrency import run_in_threadpool
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
 
-from utils.utils import check_legit_plate, crop_expanded_plate, downscale_image
+from utils.utils import check_legit_plate, crop_expanded_plate, downscale_image, strip_extra_text
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_WEIGHT_PATH = os.environ.get(
     "PLATE_MODEL_PATH",
-    str(REPO_ROOT / "weights" / "license_plate_detector.pt"),
+    str(REPO_ROOT / "weights" / "plate_yolo11s_640_2025.pt"),
 )
 DEFAULT_DEVICE = os.environ.get("PLATE_DEVICE", "cpu")
 DEFAULT_DET_CONF = float(os.environ.get("PLATE_CONF_THRESHOLD", 0.25))
 DEFAULT_OCR_CONF = float(os.environ.get("PLATE_OCR_THRESHOLD", 0.8))
 DEFAULT_IMAGE_SIZE = int(os.environ.get("PLATE_IMG_SIZE", 640))
-DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", -0.01))
+DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", 0.1))
 DEFAULT_MIN_INPUT_DIM = max(1, int(os.environ.get("PLATE_MIN_INPUT_DIM", "64")))
 DEFAULT_MAX_INPUT_PIXELS = max(0, int(os.environ.get("PLATE_MAX_INPUT_PIXELS", "12000000")))
 DEFAULT_PLATE_CONTRAST_CLIP = max(
@@ -191,8 +191,18 @@ class PlatePipeline:
         rec_scores = results[0].get("rec_scores", [])
         text = " ".join(rec_texts) if rec_texts else ""
         text = re.sub(r"[^A-Za-z0-9\-.]", "", text)
+        text = re.sub(r"[-.]", "", text)
+        text = clean(text)
         if text and len(text) > 2 and text[0].isalpha() and text[2] == "C":
             text = text[:2] + "0" + text[3:]
+        if text and len(text) > 5 and text[2] == "2":
+            text = text[:2] + "Z" + text[3:]
+        if text and len(text) > 5 and text[2] == "5":
+            text = text[:2] + "S" + text[3:]
+        if text and len(text) > 5 and text[3] == "y":
+            text = text[:3] + "9" + text[4:]
+        if text and len(text) > 9:
+            text = text[:9]
         conf = float(sum(rec_scores) / len(rec_scores)) if rec_scores else 0.0
         return TextResult(
             text=text,
@@ -217,6 +227,7 @@ class PlatePipeline:
         l_channel, a_channel, b_channel = cv2.split(lab)
         enhanced_l = self._clahe.apply(l_channel)
         enhanced_lab = cv2.merge((enhanced_l, a_channel, b_channel))
+        cv2.imwrite("data/enhanced_lab.jpg", cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR))
         return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
 
     def _apply_histogram_equalization(self, plate_image: np.ndarray) -> np.ndarray:
@@ -380,7 +391,7 @@ async def read_plate(
         PlateResponseItem(
             bbox=det.bbox,
             detection_confidence=det.score,
-            ocr_text=clean(det.text),
+            ocr_text=det.text,
             ocr_confidence=det.text_conf,
             is_legit=det.legit,
         )
@@ -400,9 +411,10 @@ async def read_plate(
 
 
 def clean(text):
-    cleaned_text = re.sub(r'honda|yamaha|vie', '', text, flags=re.IGNORECASE)
-    cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
-    return cleaned_text
+    text = re.sub(r'honda|yamaha|vie', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = strip_extra_text(text)
+    return text
 
 if __name__ == "__main__":
     import uvicorn
