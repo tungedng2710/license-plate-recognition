@@ -64,7 +64,7 @@ DEFAULT_DEVICE = os.environ.get("PLATE_DEVICE", "cpu")
 DEFAULT_DET_CONF = float(os.environ.get("PLATE_CONF_THRESHOLD", 0.25))
 DEFAULT_OCR_CONF = float(os.environ.get("PLATE_OCR_THRESHOLD", 0.8))
 DEFAULT_IMAGE_SIZE = int(os.environ.get("PLATE_IMG_SIZE", 640))
-DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", 0.05))
+DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", 0.1))
 DEFAULT_MIN_INPUT_DIM = max(1, int(os.environ.get("PLATE_MIN_INPUT_DIM", "64")))
 DEFAULT_MAX_INPUT_PIXELS = max(0, int(os.environ.get("PLATE_MAX_INPUT_PIXELS", "12000000")))
 DEFAULT_PLATE_CONTRAST_CLIP = max(
@@ -169,17 +169,17 @@ class PlatePipeline:
 
         ocr_kwargs: Dict[str, object] = dict(
             lang="en",
-            textline_orientation_model_name="PP-LCNet_x0_25_textline_ori",
+            # textline_orientation_model_name="PP-LCNet_x0_25_textline_ori",
             text_detection_model_name="PP-OCRv5_server_det",
             text_recognition_model_name="PP-OCRv5_server_rec",
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
-            use_textline_orientation=True,
+            use_textline_orientation=False,
         )
         if self.device.startswith("cuda"):
             ocr_kwargs["device"] = "cpu"
         self.ocr = PaddleOCR(**ocr_kwargs)
-
+    
     def _predict_text(self, plate_image: np.ndarray) -> TextResult:
         if plate_image is None or plate_image.size == 0:
             return TextResult(text="", confidence=0.0, legit=False)
