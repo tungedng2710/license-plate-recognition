@@ -5,6 +5,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 .venv/
+.git/
 venv/
 env/
 
@@ -20,7 +21,7 @@ ppocr_onnx/
 # Checkpoints – include only the weights required by the runtime
 weights/**
 <!-- !weights/vehicle_yolov9s_640_30oct2025.pt* -->
-!weights/plate_yolov8n_320_2024.pt
+<!-- !weights/plate_yolov8n_320_2024.pt -->
 !weights/plate_yolo11s_640_2025.pt
 !weights/plate_yolo11n_640_2025.pt
 <!-- !weights/deepsort/ -->

@@ -341,3 +341,56 @@ def check_legit_plate(s):
         return True
     else:
         return False
+
+
+def enhance_plate_for_paddle(plate_bgr: np.ndarray,
+                             upscale_factor: float = 2.0,
+                             use_adaptive_thresh: bool = True):
+    """
+    Enhance cropped license plate for PaddleOCR.
+    """
+    # Convert to grayscale for stable enhancement
+    gray = cv2.cvtColor(plate_bgr, cv2.COLOR_BGR2GRAY)
+
+    # --- 1. Light contrast boost (CLAHE) ---
+    clahe = cv2.createCLAHE(clipLimit=1.8, tileGridSize=(8, 8))
+    contrast = clahe.apply(gray)
+
+    # --- 2. Gentle sharpening (unsharp mask) ---
+    blur = cv2.GaussianBlur(contrast, (0, 0), sigmaX=1.0)
+    sharp = cv2.addWeighted(contrast, 1.4, blur, -0.4, 0)
+
+    # Convert back to 3-channel for PaddleOCR
+    output = cv2.cvtColor(sharp, cv2.COLOR_GRAY2BGR)
+    return output
+
+
+def rotate_clockwise(image: np.ndarray, angle_deg: float = 20):
+    """
+    Rotate image clockwise by given angle.
+    Keeps full image (no cropping).
+    """
+
+    # Clockwise angle → negative value for cv2.getRotationMatrix2D
+    angle = -abs(angle_deg)
+
+    h, w = image.shape[:2]
+    center = (w // 2, h // 2)
+
+    # Rotation matrix
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+
+    # Compute new bounding dimensions to avoid cropping
+    cos_val = abs(M[0, 0])
+    sin_val = abs(M[0, 1])
+
+    new_w = int((h * sin_val) + (w * cos_val))
+    new_h = int((h * cos_val) + (w * sin_val))
+
+    # Adjust matrix for translation
+    M[0, 2] += (new_w // 2) - center[0]
+    M[1, 2] += (new_h // 2) - center[1]
+
+    # Apply rotation
+    rotated = cv2.warpAffine(image, M, (new_w, new_h), flags=cv2.INTER_LINEAR)
+    return rotated

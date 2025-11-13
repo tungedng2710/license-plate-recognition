@@ -52,7 +52,7 @@ from starlette.concurrency import run_in_threadpool
 from ultralytics import YOLO
 from paddleocr import PaddleOCR
 
-from utils.utils import check_legit_plate, crop_expanded_plate, downscale_image, strip_extra_text
+from utils.utils import check_legit_plate, crop_expanded_plate, strip_extra_text, rotate_clockwise, enhance_plate_for_paddle
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -64,11 +64,11 @@ DEFAULT_DEVICE = os.environ.get("PLATE_DEVICE", "cpu")
 DEFAULT_DET_CONF = float(os.environ.get("PLATE_CONF_THRESHOLD", 0.25))
 DEFAULT_OCR_CONF = float(os.environ.get("PLATE_OCR_THRESHOLD", 0.8))
 DEFAULT_IMAGE_SIZE = int(os.environ.get("PLATE_IMG_SIZE", 640))
-DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", 0.1))
+DEFAULT_CROP_EXPAND_RATIO = float(os.environ.get("PLATE_CROP_EXPAND_RATIO", 0.05))
 DEFAULT_MIN_INPUT_DIM = max(1, int(os.environ.get("PLATE_MIN_INPUT_DIM", "64")))
 DEFAULT_MAX_INPUT_PIXELS = max(0, int(os.environ.get("PLATE_MAX_INPUT_PIXELS", "12000000")))
 DEFAULT_PLATE_CONTRAST_CLIP = max(
-    0.1, float(os.environ.get("PLATE_CONTRAST_CLIP_LIMIT", "3.0"))
+    0.1, float(os.environ.get("PLATE_CONTRAST_CLIP_LIMIT", "0.5"))
 )
 DEFAULT_PLATE_CONTRAST_TILE = max(
     1, int(os.environ.get("PLATE_CONTRAST_TILE_GRID", "8"))
@@ -155,10 +155,11 @@ class PlatePipeline:
         self._lock = Lock()
         tile = max(1, int(contrast_tile_grid))
         clip_limit = max(0.1, float(contrast_clip_limit))
-        self._clahe = cv2.createCLAHE(
-            clipLimit=clip_limit,
-            tileGridSize=(tile, tile),
-        )
+        # self._clahe = cv2.createCLAHE(
+        #     clipLimit=clip_limit,
+        #     tileGridSize=(tile, tile),
+        # )
+        self._clahe = None
 
         self.detector = YOLO(str(self.weight_path), task="detect")
         try:
@@ -190,6 +191,7 @@ class PlatePipeline:
         rec_texts = results[0].get("rec_texts", [])
         rec_scores = results[0].get("rec_scores", [])
         text = " ".join(rec_texts) if rec_texts else ""
+        print(f"Raw OCR text: {text}")
         text = re.sub(r"[^A-Za-z0-9\-.]", "", text)
         text = re.sub(r"[-.]", "", text)
         text = clean(text)
@@ -284,9 +286,11 @@ class PlatePipeline:
                     image,
                     expand_ratio=self.crop_expand_ratio,
                 )
-                plate_crop = self._enhance_plate_crop(plate_crop)
-                # plate_crop = downscale_image(plate_crop)
-                text_result = self._predict_text(plate_crop)
+                # plate_crop = self._enhance_plate_crop(plate_crop)
+                plate_crop = enhance_plate_for_paddle(plate_crop)
+                plate_crop = rotate_clockwise(plate_crop)
+                cv2.imwrite("data/raw_plate_crop.jpg", plate_crop)
+                text_result = self._predict_text(plate_crop)    
                 text = text_result.text if text_result.confidence >= ocr_conf else ""
                 legit = bool(text and text_result.legit and text_result.confidence >= ocr_conf)
 
