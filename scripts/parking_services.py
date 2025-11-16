@@ -203,6 +203,10 @@ class PlatePipeline:
             text = text[:2] + "S" + text[3:]
         if text and len(text) > 5 and text[3] == "y":
             text = text[:3] + "9" + text[4:]
+        if text and len(text) > 5 and text[2] == "0":
+            text = text[:2] + "D" + text[3:]
+        if text and len(text) > 5 and text[2] == "8":
+            text = text[:2] + "B" + text[3:]
         if text and len(text) > 9:
             text = text[:9]
         conf = float(sum(rec_scores) / len(rec_scores)) if rec_scores else 0.0
