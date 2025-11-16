@@ -29,6 +29,7 @@ Response body (JSON):
 """
 from __future__ import annotations
 
+import base64
 import math
 import os
 import re
@@ -73,6 +74,7 @@ DEFAULT_PLATE_CONTRAST_CLIP = max(
 DEFAULT_PLATE_CONTRAST_TILE = max(
     1, int(os.environ.get("PLATE_CONTRAST_TILE_GRID", "8"))
 )
+DEFAULT_ROTATE_ANGLE_DEG = float(os.environ.get("PLATE_ROTATE_ANGLE_DEG", "10"))
 
 
 class PlateBBox(BaseModel):
@@ -103,6 +105,7 @@ class DetectionResult:
     text: str
     text_conf: float
     legit: bool
+    plate_image: Optional[np.ndarray]
 
 
 @dataclass
@@ -292,7 +295,7 @@ class PlatePipeline:
                 )
                 # plate_crop = self._enhance_plate_crop(plate_crop)
                 plate_crop = enhance_plate_for_paddle(plate_crop)
-                plate_crop = rotate_clockwise(plate_crop)
+                plate_crop = rotate_clockwise(plate_crop, angle_deg=DEFAULT_ROTATE_ANGLE_DEG)
                 cv2.imwrite("data/raw_plate_crop.jpg", plate_crop)
                 text_result = self._predict_text(plate_crop)    
                 text = text_result.text if text_result.confidence >= ocr_conf else ""
@@ -305,6 +308,7 @@ class PlatePipeline:
                         text=text,
                         text_conf=text_result.confidence,
                         legit=legit,
+                        plate_image=plate_crop,
                     )
                 )
 
@@ -395,30 +399,23 @@ async def read_plate(
     detections = await run_in_threadpool(_run)
     processing_time = time.perf_counter() - start_time
 
-    plate_items = [
-        PlateResponseItem(
-            bbox=det.bbox,
-            detection_confidence=det.score,
-            ocr_text=det.text,
-            ocr_confidence=det.text_conf,
-            is_legit=det.legit,
-        )
-        for det in detections
-    ]
-    if plate_items:
-        # Only keep the plate with highest detection confidence
-        plate_items = [max(plate_items, key=lambda item: item.detection_confidence)]
+    best_detection = max(detections, key=lambda det: det.score) if detections else None
+    license_plate = best_detection.text if best_detection and best_detection.text else ""
+    focus_image_base64 = ""
 
-    response = PlateResponse(
-        plate_count=len(plate_items),
-        plates=plate_items,
-        processing_time=processing_time,
-    )
+    if license_plate and best_detection and best_detection.plate_image is not None:
+        plate_image = best_detection.plate_image
+        if isinstance(plate_image, np.ndarray) and plate_image.size > 0:
+            success, buffer = cv2.imencode(".jpg", plate_image)
+            if success:
+                focus_image_base64 = base64.b64encode(buffer.tobytes()).decode("utf-8")
 
-    # Maintain compatibility across Pydantic versions
-    if hasattr(response, "model_dump"):
-        return response.model_dump()
-    return response.dict()
+    return {
+        "result": {
+            "licensePlate": license_plate,
+            "focusLicensePlateImage": focus_image_base64,
+        }
+    }
 
 
 def clean(text):
