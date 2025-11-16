@@ -405,6 +405,9 @@ async def read_plate(
         )
         for det in detections
     ]
+    if plate_items:
+        # Only keep the plate with highest detection confidence
+        plate_items = [max(plate_items, key=lambda item: item.detection_confidence)]
 
     response = PlateResponse(
         plate_count=len(plate_items),
