@@ -74,7 +74,7 @@ DEFAULT_PLATE_CONTRAST_CLIP = max(
 DEFAULT_PLATE_CONTRAST_TILE = max(
     1, int(os.environ.get("PLATE_CONTRAST_TILE_GRID", "8"))
 )
-DEFAULT_ROTATE_ANGLE_DEG = float(os.environ.get("PLATE_ROTATE_ANGLE_DEG", "10"))
+DEFAULT_ROTATE_ANGLE_DEG = float(os.environ.get("PLATE_ROTATE_ANGLE_DEG", "15"))
 
 
 class PlateBBox(BaseModel):
