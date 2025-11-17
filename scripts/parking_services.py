@@ -59,7 +59,7 @@ from utils.utils import check_legit_plate, crop_expanded_plate, strip_extra_text
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_WEIGHT_PATH = os.environ.get(
     "PLATE_MODEL_PATH",
-    str(REPO_ROOT / "weights" / "plate_yolo11s_640_2025.pt"),
+    str(REPO_ROOT / "weights" / "plate_yolo11n_640_2025.pt"),
 )
 DEFAULT_DEVICE = os.environ.get("PLATE_DEVICE", "cpu")
 DEFAULT_DET_CONF = float(os.environ.get("PLATE_CONF_THRESHOLD", 0.25))
@@ -113,6 +113,30 @@ class TextResult:
     text: str
     confidence: float
     legit: bool
+
+
+def _fix_common_plate_typos(text: str) -> str:
+    if text and len(text) > 2 and text[0].isalpha() and text[2] == "C":
+        text = text[:2] + "0" + text[3:]
+    if text and len(text) > 5 and text[2] == "2":
+        text = text[:2] + "Z" + text[3:]
+    if text and len(text) > 5 and text[2] == "5":
+        text = text[:2] + "S" + text[3:]
+    if text and len(text) > 5 and text[3] == "y":
+        text = text[:3] + "9" + text[4:]
+    if text and len(text) > 5 and text[2] == "0":
+        text = text[:2] + "D" + text[3:]
+    if text and len(text) > 5 and text[2] == "8":
+        text = text[:2] + "B" + text[3:]
+    return text
+
+
+def _postprocess_ocr_text(text: str) -> str:
+    formatted = re.sub(r"[^A-Za-z0-9\-.]", "", text)
+    formatted = re.sub(r"[-.]", "", formatted)
+    formatted = clean(formatted)
+    formatted = _fix_common_plate_typos(formatted)
+    return formatted[:9]
 
 
 def _resolve_device(requested: str) -> str:
@@ -173,8 +197,8 @@ class PlatePipeline:
         ocr_kwargs: Dict[str, object] = dict(
             lang="en",
             # textline_orientation_model_name="PP-LCNet_x0_25_textline_ori",
-            text_detection_model_name="PP-OCRv5_server_det",
-            text_recognition_model_name="PP-OCRv5_server_rec",
+            text_detection_model_name="PP-OCRv5_mobile_det",
+            text_recognition_model_name="PP-OCRv5_mobile_rec",
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,
@@ -193,30 +217,13 @@ class PlatePipeline:
 
         rec_texts = results[0].get("rec_texts", [])
         rec_scores = results[0].get("rec_scores", [])
-        text = " ".join(rec_texts) if rec_texts else ""
-        print(f"Raw OCR text: {text}")
-        text = re.sub(r"[^A-Za-z0-9\-.]", "", text)
-        text = re.sub(r"[-.]", "", text)
-        text = clean(text)
-        if text and len(text) > 2 and text[0].isalpha() and text[2] == "C":
-            text = text[:2] + "0" + text[3:]
-        if text and len(text) > 5 and text[2] == "2":
-            text = text[:2] + "Z" + text[3:]
-        if text and len(text) > 5 and text[2] == "5":
-            text = text[:2] + "S" + text[3:]
-        if text and len(text) > 5 and text[3] == "y":
-            text = text[:3] + "9" + text[4:]
-        if text and len(text) > 5 and text[2] == "0":
-            text = text[:2] + "D" + text[3:]
-        if text and len(text) > 5 and text[2] == "8":
-            text = text[:2] + "B" + text[3:]
-        if text and len(text) > 9:
-            text = text[:9]
+        raw_text = " ".join(rec_texts) if rec_texts else ""
+        normalized_text = _postprocess_ocr_text(raw_text)
         conf = float(sum(rec_scores) / len(rec_scores)) if rec_scores else 0.0
         return TextResult(
-            text=text,
+            text=normalized_text,
             confidence=conf,
-            legit=bool(text and check_legit_plate(text)),
+            legit=bool(normalized_text and check_legit_plate(normalized_text)),
         )
 
     def _enhance_plate_crop(self, plate_image: np.ndarray) -> np.ndarray:
@@ -236,7 +243,6 @@ class PlatePipeline:
         l_channel, a_channel, b_channel = cv2.split(lab)
         enhanced_l = self._clahe.apply(l_channel)
         enhanced_lab = cv2.merge((enhanced_l, a_channel, b_channel))
-        cv2.imwrite("data/enhanced_lab.jpg", cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR))
         return cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
 
     def _apply_histogram_equalization(self, plate_image: np.ndarray) -> np.ndarray:
@@ -296,8 +302,7 @@ class PlatePipeline:
                 # plate_crop = self._enhance_plate_crop(plate_crop)
                 plate_crop = enhance_plate_for_paddle(plate_crop)
                 plate_crop = rotate_clockwise(plate_crop, angle_deg=DEFAULT_ROTATE_ANGLE_DEG)
-                cv2.imwrite("data/raw_plate_crop.jpg", plate_crop)
-                text_result = self._predict_text(plate_crop)    
+                text_result = self._predict_text(plate_crop)
                 text = text_result.text if text_result.confidence >= ocr_conf else ""
                 legit = bool(text and text_result.legit and text_result.confidence >= ocr_conf)
 
@@ -414,7 +419,8 @@ async def read_plate(
         "result": {
             "licensePlate": license_plate,
             "focusLicensePlateImage": focus_image_base64,
-        }
+        },
+        "processing_time": processing_time,
     }
 
 
