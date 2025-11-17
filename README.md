@@ -150,3 +150,29 @@ To build and run the image manually:
 docker build -t trafficcam .
 docker run -p 7867:7867 trafficcam
 ```
+
+## Parking Monitor API
+Predict license plates via a lightweight FastAPI service. Two variants are available:
+
+- Multipart upload: `scripts/parking_services.py` expects `image_file` as multipart/form-data (field name `image_file`).
+- Base64 JSON: `scripts/parking_services_base64.py` expects a JSON body with `image_base64`.
+
+Run either service locally (defaults: host `0.0.0.0`, port `8080`):
+```bash
+python -m uvicorn scripts.parking_services:app --host 0.0.0.0 --port 8080
+# or base64 variant
+python -m uvicorn scripts.parking_services_base64:app --host 0.0.0.0 --port 8080
+```
+
+Example request (base64 JSON):
+```bash
+curl -X POST http://localhost:8080/api/plates \
+  -H "Content-Type: application/json" \
+  -d '{"image_base64": "<base64-image-string>"}'
+```
+
+Example request (multipart upload):
+```bash
+curl -X POST http://localhost:8080/api/plates \
+  -F "image_file=@/path/to/plate.jpg"
+```
